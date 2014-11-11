@@ -1,121 +1,138 @@
-require 'foreman_api'
+#!/usr/bin/env ruby
 require 'yaml'
+require 'pry'
+
+require_relative "lib/highline_helper"
+require_relative "lib/providers_foreman"
 
 module ProvidersForeman
-  class Connection
-    attr_accessor :base_url
-    attr_accessor :username
-    attr_accessor :password
+  class Run
+    include HighlineHelper
 
-    # defaults to OpenSSL::SSL::VERIFY_PEER
-    # for self signed certs, probably want to do:
-    # OpenSSL::SSL::VERIFY_NONE (0 / false)
-    attr_accessor :verify_ssl
+    attr_accessor :args, :nodes
+    def initialize(opts = {}, nodes = {})
+      @args = opts
+      @nodes = nodes
+    end
 
-    def initialize(opts = {})
-      opts.each do |n, v|
-        public_send("#{n}=", v)
+    def c
+      @c ||= ProvidersForeman::Connection.new(args)
+    end
+
+    def target_host_name
+      nodes["name"] #partial name
+    end
+
+    def print_host(host)
+      puts "##{host["id"]}: #{host["name"]} #{host["environment_id"]}:#{host["environment_name"]} (uuid: #{host["uuid"]})"
+      puts "=> enabled: #{host["enabled"]} build: #{host["build"]} managed: #{host["managed"]}"
+      puts "hostgroup #{host["hostgroup_id"]}:#{host["hostgroup_name"]}" if host["hostgroup_id"]
+      puts "architecture #{host["architecture_id"]}:#{host["architecture_name"]}" if host["architecture_id"]
+      puts "operatingsystem #{host["operatingsystem_id"]}:#{host["operatingsystem_name"]}" if host["operatingsystem_id"]
+      puts "ptable #{host["ptable_id"]}:#{host["ptable_name"]}" if host["ptable_id"]
+      puts "medium #{host["medium_id"]}:#{host["medium_name"]}" if host["medium_id"]
+    end
+
+    def print_host_group(hg)
+      # note, these params will only be populated if overriding. need to reference "ancestory" (list of ids) to get values
+      puts " #{hg["title"]} (#{hg["environment_name"]}) ##{hg["id"]} proxy:[#{hg["puppet_proxy_id"]} ca: #{hg["puppet_ca_proxy_id"]}]"
+      puts "   :: subnet: #{hg["subnet_name"]} (#{hg["subnet_id"]})" if hg["subnet_id"]
+      puts "   :: operatingsystem: #{hg["operatingsystem_name"]} (#{hg["operatingsystem_id"]})" if hg["operatingsystem_id"]
+      puts "   :: domain: #{hg["domain_name"]} (#{hg["domain_id"]})" if hg["domain_id"]
+      puts "   :: environment: #{hg["environment_name"]} (#{hg["environment_id"]})" if hg["environment_id"]
+      puts "   :: compute_profile: #{hg["compute_profile_name"]} (#{hg["compute_profile_id"]})" if hg["compute_profile_id"]
+      puts "   :: ptable: #{hg["ptable_name"]} (#{hg["ptable_id"]})" if hg["ptable_id"]
+      puts "   :: medium: #{hg["medium_name"]} (#{hg["medium_id"]})" if hg["medium_id"]
+      puts "   :: architecture: #{hg["architecture_name"]} (#{hg["architecture_id"]})" if hg["architecture_id"]
+      puts "   :: realm: #{hg["realm_name"]} (#{hg["realm_id"]})" if hg["realm_id"]
+    end
+
+    def run
+      # get list of foreman hosts
+      #puts hosts.collect { |h| " #{h["name"]} #{h["mac"]} ##{h["id"]}" }
+      host = c.hosts.detect { |h| h["name"].include?(target_host_name)}
+
+      puts
+      puts "Host"
+      puts
+      print_host(host)
+      puts
+
+      # NOTE: host groups will currently store:
+      #   environment, puppet ca, puppet master, network/domain, params["ntp"], os architecture
+      # it will optionally store: os (os family), media, partition table
+
+      host_groups = c.denormalized_host_groups
+      host_group = ask_with_menu("Host Group",
+        host_groups.each_with_object({}) do |hg, h|
+          h["#{hg["title"]} (#{hg["environment_name"]})"] = hg
+        end, host["hostgroup_id"])
+
+      puts
+      puts "HostGroup"
+      puts
+      print_host_group(host_group)
+      puts
+
+      operating_systems = c.operating_systems("family" => "Redhat")
+      default_os_id = host["operatingsystem_id"] || host_group["operatingsystem_id"]
+      default_os = operating_systems.detect { |o| o["id"] == default_os_id }
+      os  = ask_with_menu("OS",
+                          operating_systems.each_with_object({}) do |o, h|
+                            h["#{o["fullname"]} (#{o["family"]})"] = o
+                          end,
+                          default_os)
+
+      medias = c.media("os_family" => os["family"])
+      default_medium_id = host["medium_id"] || host_group["medium_id"]
+      default_medium = medias.detect { |m| m["id"] == default_medium_id }
+      medium  = ask_with_menu("Media",
+                              medias.each_with_object({}) do |m, h|
+                                h["#{m["name"]}"] = m
+                              end,
+                              default_medium)
+
+      ptables = c.ptable("os_family" => os["family"])
+      default_ptable_id = host["ptable_id"] || host_group["ptable_id"]
+      default_ptable = ptables.detect { |pt| pt["id"] == default_ptable_id }
+      partition = ask_with_menu("Partition",
+        ptables.each_with_object({}) do |pt, h|
+          h["#{pt["name"]}"] = pt
+        end, default_ptable)
+
+      # TODO: root password (can default from host groups)
+      # new_host is the new values (remove the ones that are equal to the existing host record)
+      new_host = {
+        "hostgroup_id" => host_group["id"],
+        "operatingsystem_id" => os["id"], #?
+        "medium_id"    => medium["id"],
+        "ptable_id"    => partition["id"],
+        "build"        => true
+      }.delete_if { |n, v| host[n] == v }
+      new_host["id"] = host["id"]
+
+      puts
+      puts "New Host Values for host"
+      puts
+      new_host.each do |n, v|
+        puts "  #{n}: #{host[n]||"nil"} => #{v}"
       end
-    end
 
-    def verify_ssl=(val)
-      @verify_ssl = if val == true
-                      OpenSSL::SSL::VERIFY_PEER
-                    elsif val == false
-                      OpenSSL::SSL::VERIFY_NONE
-                    else
-                      val
-                    end
-    end
+      binding.pry()
+      # TEST save foreman host with new values
+      # c.raw_hosts.update(new_host)
+      # TODO: 
+      # restart foreman host to provision
 
-    def verify_ssl?
-      @verify_ssl != OpenSSL::SSL::VERIFY_NONE
-    end
-
-    def api_version
-      home.status.first["api_version"]
-    end
-
-    def find_host_by_foreman_id(id)
-    end
-
-    def all_hosts
-      hosts.index.first
-    end
-
-    def home
-      ForemanApi::Resources::Home.new(connection_attrs)
-    end
-
-    def hosts
-      ForemanApi::Resources::Host.new(connection_attrs)
-    end
-
-    private
-
-    def connection_attrs
-      {
-        :base_url   => @base_url,
-        :username   => @username,
-        :password   => @password,
-        :verify_ssl => @verify_ssl
-      }
+      # poll (fetch foreman host by external id and wait until "build" => false
+      # ? way to leverage callbacks? either generic: please refresh all foreman hosts or please refresh specific foreman host
     end
   end
 end
 
-# EngOps registers baremetal via ISO (when racking new hardware)
-#   burn iso
-#   boot machine with iso
-#   via cd, foreman discovers machine and creates foreman host record
-#   ? did the user assign various parameters ?
-
-# EngOps emails DevOps IP address and credentials for iDRAC
-# DevOps goes into foreman and registers baremetal
-#   add BMC interface, primary interface mac address
-#     populating unneeded required fields with bogus values
-
-# EngOps emails DevOps IP address and credentials for iDRAC
-# DevOps registers baremetal via ManageIq (in managed_hosts tab)
-#   user provides us with IP address and credentials for iDRAC
-#   via rest protocol create foreman host record, bmc interface
-#     populating unneeded required fields with bogus values (?)
-
 if __FILE__ == $0
   params = YAML.load_file('foreman.yml')
   # Login to Foreman
-  c = ProvidersForeman::Connection.new(
-    params["creds"]
-  )
-  # get list of foreman hosts
-  hosts = c.all_hosts
-  puts hosts["results"].map { |n| " #{n["name"]} #{n["mac"]}" }
-  # user chooses host to provision
-  mac=params["nodes"]["mac"] #external_id => foreman_id
-  # get host record parameter choices (host groups, os, media, partition table) ? can we force these for host group?
-  # host groups -> environment, puppet ca, puppet master, network/domain, params["ntp"], os architecture,
-  # os (os family) (can default from host groups)
-  # media (can default from host groups)
-  # partition table (can default from host groups)
-  # root password (can default from host groups)
-  # build mode (set to true)
-
-  # get foreman host / display it for verification
-  # save foreman host with new values
-  # restart foreman host to provision
-
-  # poll (fetch foreman host by external id and wait until "build" => false
-  # ? way to leverage callbacks? either generic: please refresh all foreman hosts or please refresh specific foreman host
-  #pp hosts["results"].first.delete_if { |n, v| v.nil? } ; nil# name => value
+  c = ProvidersForeman::Run.new(params["creds"], params["nodes"])
+  c.run
 end
-
-# TANGENTS (that we need to do sooner or later)
-
-# inventory
-# get list of all foreman hosts
-# determine if we already have a vm for that host record / link them
-
-# register VM via ManageIq (at provisioning time)
-#   we create VM in VMWare
-#   via rest protocol create foreman host record
-#     set primary interface mac address
