@@ -103,9 +103,10 @@ module ProvidersForeman
           h["#{pt["name"]}"] = pt
         end, default_ptable)
 
+      root_password = ask("Root Password: ") { |q| q.echo = '*' }
+
       # TODO
       # choose subnet [hostgroup?]
-      # root password
       # ip address
       # subnet
 
@@ -116,6 +117,7 @@ module ProvidersForeman
         "medium_id"          => medium["id"],
         "operatingsystem_id" => os["id"], #?
         "ptable_id"          => partition["id"],
+        "root_pass"          => root_password,
       }.delete_if { |n, v| host[n] == v }
       new_host["id"] = host["id"]
 
