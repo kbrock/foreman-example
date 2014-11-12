@@ -103,19 +103,24 @@ module ProvidersForeman
           h["#{pt["name"]}"] = pt
         end, default_ptable)
 
+      root_password = ask("Root Password: ") { |q| q.echo = '*' }
+
+      puts default_hostname = host["name"]
+      hostname = ask("Hostname: ") { |q| q.default = default_hostname }
       # TODO
       # choose subnet [hostgroup?]
-      # root password
       # ip address
       # subnet
 
       # new_host is the new values (remove the ones that are equal to the existing host record)
       new_host = {
-        "hostgroup_id" => host_group["id"],
+        "build"              => true,
+        "hostgroup_id"       => host_group["id"],
+        "medium_id"          => medium["id"],
+        "name"               => hostname,
         "operatingsystem_id" => os["id"], #?
-        "medium_id"    => medium["id"],
-        "ptable_id"    => partition["id"],
-        "build"        => true
+        "ptable_id"          => partition["id"],
+        "root_pass"          => root_password,
       }.delete_if { |n, v| host[n] == v }
       new_host["id"] = host["id"]
 
@@ -138,7 +143,7 @@ module ProvidersForeman
 
       print "Waiting for PXE provision to complete"
       loop { break unless c.raw_hosts.show("id" => host["id"]).first["build"]; print "."; sleep 10 }
-      print "Complete!"
+      puts "Complete!"
       # ? way to leverage callbacks? either generic: please refresh all foreman hosts or please refresh specific foreman host
 
     end
