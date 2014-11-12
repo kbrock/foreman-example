@@ -105,6 +105,8 @@ module ProvidersForeman
 
       root_password = ask("Root Password: ") { |q| q.echo = '*' }
 
+      puts default_hostname = host["name"]
+      hostname = ask("Hostname: ") { |q| q.default = default_hostname }
       # TODO
       # choose subnet [hostgroup?]
       # ip address
@@ -115,6 +117,7 @@ module ProvidersForeman
         "build"              => true,
         "hostgroup_id"       => host_group["id"],
         "medium_id"          => medium["id"],
+        "name"               => hostname,
         "operatingsystem_id" => os["id"], #?
         "ptable_id"          => partition["id"],
         "root_pass"          => root_password,
