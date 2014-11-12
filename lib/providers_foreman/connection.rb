@@ -35,8 +35,8 @@ module ProvidersForeman
       home.status.first["api_version"]
     end
 
-    def hosts
-      raw_hosts.index.first["results"]
+    def hosts(opts = {})
+      raw_hosts.index(opts).first["results"]
     end
 
     def denormalized_host_groups
@@ -47,16 +47,16 @@ module ProvidersForeman
       raw_host_groups.index.first["results"]
     end
 
-    def operating_systems(filter = nil)
-      paged_response(ForemanApi::Resources::OperatingSystem, filter)
+    def operating_systems(filter = {}, local_filter = {})
+      paged_response(ForemanApi::Resources::OperatingSystem, filter, local_filter)
     end
 
-    def media(filter = nil)
-      paged_response(ForemanApi::Resources::Medium, filter)
+    def media(filter = {}, local_filter = {})
+      paged_response(ForemanApi::Resources::Medium, filter, local_filter)
     end
 
-    def ptable(filter = nil)
-      paged_response(ForemanApi::Resources::Ptable, filter)
+    def ptable(filter = {}, local_filter = {})
+      paged_response(ForemanApi::Resources::Ptable, filter, local_filter)
     end
 
     # take all the data from ancestors, and put that into the groups
@@ -68,10 +68,11 @@ module ProvidersForeman
       end
     end
 
-    # future meta foo
-    # results(ForemanApi::Resources::Host)
-    def paged_response(resource, filter = {})
-      PagedResponse.new(raw(resource).index.first, filter)
+    # filter:
+    #   accepts "page" => 2, "per_page" => , "search" => "field=value", "value"
+    # results(ForemanApi::Resources::Host, {"page" => 2, "search" => "family=RedHat"})
+    def paged_response(resource, filter = {}, local_filter = {})
+      PagedResponse.new(raw(resource).index(filter).first, local_filter)
     end
 
     def update_record(resource, values)
@@ -90,7 +91,9 @@ module ProvidersForeman
       ForemanApi::Resources::Hostgroup.new(connection_attrs)
     end
 
-    private
+    def raw_operating_systems
+      raw(ForemanApi::Resources::OperatingSystem)
+    end
 
     def raw(resource)
       resource.new(connection_attrs)

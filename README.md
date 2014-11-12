@@ -1,28 +1,38 @@
 Quick collaboration work to nail down our use cases with the foreman
 
-
 # Pre-workflows
-## Workflow for discovery via ISO
 
-EngOps registers baremetal via ISO (when racking new hardware)
-- burn iso
-- boot machine with iso
-- via cd, foreman discovers machine and creates foreman host record
-- ? did the user assign various parameters ?
+- EngOps registers baremetal via ISO (when racking new hardware)
+    - burn iso
+    - boot machine with iso
+    - via cd, foreman discovers machine and creates foreman host record
+- discovery in foreman
+- discovery via manageiq (no)
 
-## Workflow for discovery via foreman
+- assign ipmi (iDrac - dell's ipmi hardware)
+- assign primary interface: mac
+- assign os architecture
 
-- EngOps emails DevOps IP address and credentials for iDRAC
-- DevOps goes into foreman and registers baremetal
-    - add BMC interface, primary interface mac address
-    - populating unneeded required fields with bogus values
+# Foreman setup (DevOps)
+# Hostgroup contains:
+#   environment, puppet ca, puppet master, network/domain
+#   it will optionally store: os (os family), media, partition table
+# subnet
 
-# NO: Discovery in ManageIQ
-- EngOps emails DevOps IP address and credentials for iDRAC
-- DevOps registers baremetal via ManageIq (in managed_hosts tab)
-    - user provides us with IP address and credentials for iDRAC
-    - via rest protocol create foreman host record, bmc interface
-    - populating unneeded required fields with bogus values (?)
+
+# Provision Bare metal (User)
+
+- Catalog
+    host
+    pxe: Host Group (ipxe, provision), OS 
+- Customize:
+    + root password
+    + host name
+    + ip address
+    + subnet choice (contains gateway, dns)
+    + template
+        + medium
+        + ptable
 
 # workflows for another day
 

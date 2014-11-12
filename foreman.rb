@@ -9,18 +9,14 @@ module ProvidersForeman
   class Run
     include HighlineHelper
 
-    attr_accessor :args, :nodes
-    def initialize(opts = {}, nodes = {})
+    attr_accessor :args, :target_host_name
+    def initialize(opts = {}, target_host_name = nil)
       @args = opts
-      @nodes = nodes
+      @target_host_name = target_host_name
     end
 
     def c
       @c ||= ProvidersForeman::Connection.new(args)
-    end
-
-    def target_host_name
-      nodes["name"] #partial name
     end
 
     def print_host(host)
@@ -51,6 +47,7 @@ module ProvidersForeman
       # get list of foreman hosts
       #puts hosts.collect { |h| " #{h["name"]} #{h["mac"]} ##{h["id"]}" }
       host = c.hosts.detect { |h| h["name"].include?(target_host_name)}
+      host ||= c.hosts("page" => 2).detect { |h| h["name"].include?(target_host_name)}
 
       puts
       puts "Host"
@@ -68,13 +65,8 @@ module ProvidersForeman
           h["#{hg["title"]} (#{hg["environment_name"]})"] = hg
         end, host["hostgroup_id"])
 
-      puts
-      puts "HostGroup"
-      puts
-      print_host_group(host_group)
-      puts
-
-      operating_systems = c.operating_systems("family" => "Redhat")
+      # [might be set by host group]
+      operating_systems = c.operating_systems #("search" => "family=Redhat")
       default_os_id = host["operatingsystem_id"] || host_group["operatingsystem_id"]
       default_os = operating_systems.detect { |o| o["id"] == default_os_id }
       os  = ask_with_menu("OS",
@@ -82,8 +74,19 @@ module ProvidersForeman
                             h["#{o["fullname"]} (#{o["family"]})"] = o
                           end,
                           default_os)
+      puts
+      puts "HostGroup"
+      puts
+      print_host_group(host_group)
+      # print OS?
+      puts
 
-      medias = c.media("os_family" => os["family"])
+      #binding.pry
+      # TODO: filter based upon os
+      medias = c.media #("search" => "family=#{os["family"]}")
+      ptables = c.ptable #({"search" => "family=#{os["family"]}"})
+
+      # TODO: client side filtering based upon OS
       default_medium_id = host["medium_id"] || host_group["medium_id"]
       default_medium = medias.detect { |m| m["id"] == default_medium_id }
       medium  = ask_with_menu("Media",
@@ -92,7 +95,7 @@ module ProvidersForeman
                               end,
                               default_medium)
 
-      ptables = c.ptable("os_family" => os["family"])
+      # TODO: client side filtering based upon OS
       default_ptable_id = host["ptable_id"] || host_group["ptable_id"]
       default_ptable = ptables.detect { |pt| pt["id"] == default_ptable_id }
       partition = ask_with_menu("Partition",
@@ -100,7 +103,12 @@ module ProvidersForeman
           h["#{pt["name"]}"] = pt
         end, default_ptable)
 
-      # TODO: root password (can default from host groups)
+      # TODO
+      # choose subnet [hostgroup?]
+      # root password
+      # ip address
+      # subnet
+
       # new_host is the new values (remove the ones that are equal to the existing host record)
       new_host = {
         "hostgroup_id" => host_group["id"],
@@ -111,21 +119,25 @@ module ProvidersForeman
       }.delete_if { |n, v| host[n] == v }
       new_host["id"] = host["id"]
 
-      puts
-      puts "New Host Values for host"
-      puts
-      new_host.each do |n, v|
-        puts "  #{n}: #{host[n]||"nil"} => #{v}"
-      end
 
-      binding.pry()
-      # TEST save foreman host with new values
-      # c.raw_hosts.update(new_host)
-      # TODO: 
-      # restart foreman host to provision
+      c.raw_hosts.update(new_host)
 
-      # poll (fetch foreman host by external id and wait until "build" => false
+      puts
+      puts "Host Values"
+      puts
+      print_host(host)
+      puts
+
+      # h.power("id" => 28, "power_action" => "status")
+      c.raw_host.power("id" => host["id"], "power_action" => "off")
+      # poll: c.raw_host.power("id" => 28, "power_action" => "status") ==> "power: false"
+      c.raw_hosts.boot("id" => host["id"], "device" => "pxe")
+      c.raw_hosts.power("id" => host["id"], "power_action" => "on")
+
+      # poll:
+      c.raw_hosts.show(host["id"])
       # ? way to leverage callbacks? either generic: please refresh all foreman hosts or please refresh specific foreman host
+
     end
   end
 end
@@ -133,6 +145,6 @@ end
 if __FILE__ == $0
   params = YAML.load_file('foreman.yml')
   # Login to Foreman
-  c = ProvidersForeman::Run.new(params["creds"], params["nodes"])
+  c = ProvidersForeman::Run.new(params["creds"], ARGV[0] || params["nodes"]["name"])
   c.run
 end
