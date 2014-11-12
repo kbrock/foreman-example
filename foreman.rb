@@ -128,14 +128,17 @@ module ProvidersForeman
       print_host(host)
       puts
 
-      # h.power("id" => 28, "power_action" => "status")
-      c.raw_host.power("id" => host["id"], "power_action" => "off")
-      # poll: c.raw_host.power("id" => 28, "power_action" => "status") ==> "power: false"
+      c.raw_hosts.power("id" => host["id"], "power_action" => "off")
+      print "Waiting for Power Off."
+      loop { break if c.raw_hosts.power("id" => 28, "power_action" => "status").first["power"] == "off"; print "."; sleep 1 }
+      puts
+      puts "Setting boot device to PXE and booting..."
       c.raw_hosts.boot("id" => host["id"], "device" => "pxe")
       c.raw_hosts.power("id" => host["id"], "power_action" => "on")
 
-      # poll:
-      c.raw_hosts.show(host["id"])
+      print "Waiting for PXE provision to complete"
+      loop { break unless c.raw_hosts.show("id" => host["id"]).first["build"]; print "."; sleep 10 }
+      print "Complete!"
       # ? way to leverage callbacks? either generic: please refresh all foreman hosts or please refresh specific foreman host
 
     end
