@@ -149,7 +149,7 @@ module ProvidersForeman
 
       c.raw_hosts.power("id" => host["id"], "power_action" => "off")
       print "Waiting for Power Off."
-      loop { break if c.raw_hosts.power("id" => 28, "power_action" => "status").first["power"] == "off"; print "."; sleep 1 }
+      loop { break if c.raw_hosts.power("id" => host["id"], "power_action" => "status").first["power"] == "off"; print "."; sleep 1 }
       puts
       puts "Setting boot device to PXE and booting..."
       c.raw_hosts.boot("id" => host["id"], "device" => "pxe")
