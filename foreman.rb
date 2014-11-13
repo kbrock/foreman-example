@@ -113,17 +113,21 @@ module ProvidersForeman
 
       root_password = ask("Root Password: ") { |q| q.echo = '*' }
 
-      puts default_hostname = host["name"]
+      default_hostname = host["name"]
       hostname = ask("Hostname: ") { |q| q.default = default_hostname }
+
+      default_ip_address = host["ip"]
+      ip_address = ask("IP Address: ") { |q| q.default = default_ip_address }
+
       # TODO
       # choose subnet [hostgroup?]
-      # ip address
       # subnet
 
       # new_host is the new values (remove the ones that are equal to the existing host record)
       new_host = {
         "build"              => true,
         "hostgroup_id"       => hostgroup["id"],
+        "ip"                 => ip_address,
         "medium_id"          => medium["id"],
         "name"               => hostname,
         "operatingsystem_id" => os["id"], #?
