@@ -39,12 +39,13 @@ module ProvidersForeman
       raw_hosts.index(opts).first["results"]
     end
 
-    def denormalized_hostgroups
-      denormalize_hostgroups(hostgroups)
+    def denormalized_hostgroups(filter = {}, local_filter = {})
+      #denormalize_hostgroups(hostgroups(filter, local_filter))
+      PagedResponse.prune(denormalize_hostgroups(raw_hostgroups.index(filter).first["results"]), local_filter)
     end
 
-    def hostgroups
-      raw_hostgroups.index.first["results"]
+    def hostgroups(filter = {}, local_filter = {})
+      paged_response(ForemanApi::Resources::Hostgroup, filter, local_filter)
     end
 
     def operating_systems(filter = {}, local_filter = {})

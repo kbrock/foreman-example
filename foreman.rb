@@ -55,15 +55,12 @@ module ProvidersForeman
       print_host(host)
       puts
 
-      # NOTE: host groups will currently store:
-      #   environment, puppet ca, puppet master, network/domain, params["ntp"], os architecture
-      # it will optionally store: os (os family), media, partition table
-
-      hostgroups           = c.denormalized_hostgroups
+      # architecture is not stored for all hostgroups, so need to bring back all and denormalize before filtering)
+      hostgroups           = c.denormalized_hostgroups(nil, "architecture_name" => host["architecture_name"])
       default_hostgroup_id = host["hostgroup_id"]
       default_hostgroup    = hostgroups.detect { |hg| hg["id"] == default_hostgroup_id }
 
-      operating_systems = c.operating_systems
+      operating_systems = c.operating_systems("search" => "architecture=#{host["architecture_name"]}")
       default_os_id     = host["operatingsystem_id"]
       default_os_id   ||= default_hostgroup["operatingsystem_id"] if default_hostgroup
       default_os        = operating_systems.detect { |o| o["id"] == default_os_id }
@@ -82,6 +79,7 @@ module ProvidersForeman
                             h["#{o["fullname"]} (#{o["family"]})"] = o
                           end,
                           default_os)
+
       puts
       puts "HostGroup"
       puts
