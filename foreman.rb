@@ -63,7 +63,7 @@ module ProvidersForeman
       default_hostgroup_id = host["hostgroup_id"]
       default_hostgroup    = hostgroups.detect { |hg| hg["id"] == default_hostgroup_id }
 
-      operating_systems = c.operating_systems("search" => "architecture_id:#{host["architecture_id"]}")
+      operating_systems = c.operating_systems
       default_os_id     = host["operatingsystem_id"]
       default_os_id   ||= default_hostgroup["operatingsystem_id"] if default_hostgroup
       default_os        = operating_systems.detect { |o| o["id"] == default_os_id }
@@ -113,17 +113,21 @@ module ProvidersForeman
 
       root_password = ask("Root Password: ") { |q| q.echo = '*' }
 
-      puts default_hostname = host["name"]
+      default_hostname = host["name"]
       hostname = ask("Hostname: ") { |q| q.default = default_hostname }
+
+      default_ip_address = host["ip"]
+      ip_address = ask("IP Address: ") { |q| q.default = default_ip_address }
+
       # TODO
       # choose subnet [hostgroup?]
-      # ip address
       # subnet
 
       # new_host is the new values (remove the ones that are equal to the existing host record)
       new_host = {
         "build"              => true,
         "hostgroup_id"       => hostgroup["id"],
+        "ip"                 => ip_address,
         "medium_id"          => medium["id"],
         "name"               => hostname,
         "operatingsystem_id" => os["id"], #?
