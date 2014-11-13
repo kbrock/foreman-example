@@ -39,12 +39,12 @@ module ProvidersForeman
       raw_hosts.index(opts).first["results"]
     end
 
-    def denormalized_host_groups
-      denormalize_host_groups(host_groups)
+    def denormalized_hostgroups
+      denormalize_hostgroups(hostgroups)
     end
 
-    def host_groups
-      raw_host_groups.index.first["results"]
+    def hostgroups
+      raw_hostgroups.index.first["results"]
     end
 
     def operating_systems(filter = {}, local_filter = {})
@@ -60,7 +60,7 @@ module ProvidersForeman
     end
 
     # take all the data from ancestors, and put that into the groups
-    def denormalize_host_groups(groups)
+    def denormalize_hostgroups(groups)
       groups.collect do |g|
         (g["ancestry"] || "").split("/").each_with_object({}) do |gid, h|
           h.merge!(groups.detect {|gd| gd["id"].to_s == gid }.select { |_n, v| !v.nil? })
@@ -87,7 +87,7 @@ module ProvidersForeman
       ForemanApi::Resources::Host.new(connection_attrs)
     end
 
-    def raw_host_groups
+    def raw_hostgroups
       ForemanApi::Resources::Hostgroup.new(connection_attrs)
     end
 

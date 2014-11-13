@@ -29,7 +29,7 @@ module ProvidersForeman
       puts "medium #{host["medium_id"]}:#{host["medium_name"]}" if host["medium_id"]
     end
 
-    def print_host_group(hg)
+    def print_hostgroup(hg)
       # note, these params will only be populated if overriding. need to reference "ancestory" (list of ids) to get values
       puts " #{hg["title"]} (#{hg["environment_name"]}) ##{hg["id"]} proxy:[#{hg["puppet_proxy_id"]} ca: #{hg["puppet_ca_proxy_id"]}]"
       puts "   :: subnet: #{hg["subnet_name"]} (#{hg["subnet_id"]})" if hg["subnet_id"]
@@ -59,16 +59,24 @@ module ProvidersForeman
       #   environment, puppet ca, puppet master, network/domain, params["ntp"], os architecture
       # it will optionally store: os (os family), media, partition table
 
-      host_groups = c.denormalized_host_groups
-      host_group = ask_with_menu("Host Group",
-        host_groups.each_with_object({}) do |hg, h|
-          h["#{hg["title"]} (#{hg["environment_name"]})"] = hg
-        end, host["hostgroup_id"])
+      hostgroups           = c.denormalized_hostgroups
+      default_hostgroup_id = host["hostgroup_id"]
+      default_hostgroup    = hostgroups.detect { |hg| hg["id"] == default_hostgroup_id }
+
+      operating_systems = c.operating_systems("search" => "architecture_id:#{host["architecture_id"]}")
+      default_os_id     = host["operatingsystem_id"]
+      default_os_id   ||= default_hostgroup["operatingsystem_id"] if default_hostgroup
+      default_os        = operating_systems.detect { |o| o["id"] == default_os_id }
+
+      hostgroup = ask_with_menu("Host Group",
+        hostgroups.each_with_object({}) do |hg, h|
+          hg_title = "#{hg["title"]}"
+          hg_title << "(#{hg["environment_name"]})" if hg["environment_name"]
+          hg_title << " [OS: #{hg["operating_system_name"]}]" if hg["operating_system_id"]
+          h[hg_title] = hg
+        end, default_hostgroup)
 
       # [might be set by host group]
-      operating_systems = c.operating_systems #("search" => "family=Redhat")
-      default_os_id = host["operatingsystem_id"] || host_group["operatingsystem_id"]
-      default_os = operating_systems.detect { |o| o["id"] == default_os_id }
       os  = ask_with_menu("OS",
                           operating_systems.each_with_object({}) do |o, h|
                             h["#{o["fullname"]} (#{o["family"]})"] = o
@@ -77,7 +85,7 @@ module ProvidersForeman
       puts
       puts "HostGroup"
       puts
-      print_host_group(host_group)
+      print_hostgroup(hostgroup)
       # print OS?
       puts
 
@@ -87,7 +95,7 @@ module ProvidersForeman
       ptables = c.ptable #({"search" => "family=#{os["family"]}"})
 
       # TODO: client side filtering based upon OS
-      default_medium_id = host["medium_id"] || host_group["medium_id"]
+      default_medium_id = host["medium_id"] || hostgroup["medium_id"]
       default_medium = medias.detect { |m| m["id"] == default_medium_id }
       medium  = ask_with_menu("Media",
                               medias.each_with_object({}) do |m, h|
@@ -96,7 +104,7 @@ module ProvidersForeman
                               default_medium)
 
       # TODO: client side filtering based upon OS
-      default_ptable_id = host["ptable_id"] || host_group["ptable_id"]
+      default_ptable_id = host["ptable_id"] || hostgroup["ptable_id"]
       default_ptable = ptables.detect { |pt| pt["id"] == default_ptable_id }
       partition = ask_with_menu("Partition",
         ptables.each_with_object({}) do |pt, h|
@@ -115,7 +123,7 @@ module ProvidersForeman
       # new_host is the new values (remove the ones that are equal to the existing host record)
       new_host = {
         "build"              => true,
-        "hostgroup_id"       => host_group["id"],
+        "hostgroup_id"       => hostgroup["id"],
         "medium_id"          => medium["id"],
         "name"               => hostname,
         "operatingsystem_id" => os["id"], #?
