@@ -63,7 +63,7 @@ module ProvidersForeman
       default_hostgroup_id = host["hostgroup_id"]
       default_hostgroup    = hostgroups.detect { |hg| hg["id"] == default_hostgroup_id }
 
-      operating_systems = c.operating_systems("search" => "architecture_id:#{host["architecture_id"]}")
+      operating_systems = c.operating_systems
       default_os_id     = host["operatingsystem_id"]
       default_os_id   ||= default_hostgroup["operatingsystem_id"] if default_hostgroup
       default_os        = operating_systems.detect { |o| o["id"] == default_os_id }
