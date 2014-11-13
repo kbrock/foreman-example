@@ -109,6 +109,13 @@ module ProvidersForeman
           h["#{pt["name"]}"] = pt
         end, default_ptable)
 
+      default_subnet = host["subnet_id"]
+      subnet = ask_with_menu("Subnet",
+                              c.subnets.each_with_object({}) do |s, h|
+                                h["#{s["name"]}"] = s
+                              end,
+                              default_subnet)
+
       root_password = ask("Root Password: ") { |q| q.echo = '*' }
 
       default_hostname = host["name"]
@@ -116,10 +123,6 @@ module ProvidersForeman
 
       default_ip_address = host["ip"]
       ip_address = ask("IP Address: ") { |q| q.default = default_ip_address }
-
-      # TODO
-      # choose subnet [hostgroup?]
-      # subnet
 
       # new_host is the new values (remove the ones that are equal to the existing host record)
       new_host = {
@@ -131,6 +134,7 @@ module ProvidersForeman
         "operatingsystem_id" => os["id"], #?
         "ptable_id"          => partition["id"],
         "root_pass"          => root_password,
+        "subnet_id"          => subnet["id"],
       }.delete_if { |n, v| host[n] == v }
       new_host["id"] = host["id"]
 

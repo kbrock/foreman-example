@@ -60,6 +60,10 @@ module ProvidersForeman
       paged_response(ForemanApi::Resources::Ptable, filter, local_filter)
     end
 
+    def subnets(filter = {}, local_filter = {})
+      paged_response(ForemanApi::Resources::Subnet, filter, local_filter)
+    end
+
     # take all the data from ancestors, and put that into the groups
     def denormalize_hostgroups(groups)
       groups.collect do |g|
