@@ -23,8 +23,9 @@ Quick collaboration work to nail down our use cases with the foreman
 # Provision Bare metal (User)
 
 - Catalog
-    host
-    pxe: Host Group (ipxe, provision), OS 
+    + pxe: ->
+        + Host Group (ipxe, provision)
+        + OS
 - Customize:
     + root password
     + host name
