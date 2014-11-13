@@ -87,10 +87,10 @@ module ProvidersForeman
       # print OS?
       puts
 
-      #binding.pry
       # TODO: filter based upon os
-      medias = c.media #("search" => "family=#{os["family"]}")
-      ptables = c.ptable #({"search" => "family=#{os["family"]}"})
+      os = c.raw_operating_systems.show("id" => os["id"]).first
+      medias = os["media"] #c.media #("search" => "family=#{os["family"]}")
+      ptables = os["ptables"] #c.ptable #({"search" => "family=#{os["family"]}"})
 
       # TODO: client side filtering based upon OS
       default_medium_id = host["medium_id"] || hostgroup["medium_id"]

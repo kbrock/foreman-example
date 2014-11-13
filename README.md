@@ -15,10 +15,14 @@ Quick collaboration work to nail down our use cases with the foreman
 
 # Foreman setup (DevOps)
 
+OS contains:
+  - 1 customization template
+  - list of acceptable media, ptable
+
 Hostgroup contains:
 
    - environment, puppet ca, puppet master, network/domain
-   - optionally: os (os family), media, partition table
+   - optionally: os, media, partition table
 
 subnet contains:
 
@@ -28,9 +32,9 @@ subnet contains:
 # Provision Bare metal (User)
 
   - Catalog
-    + Host Group (ipxe, provision)
+    + pxe server [server / image] (pxe only)
+    + Host Group
     + OS
-    + Host Group/OS is replacing pxe
   - Customize:
     + root password
     + host name
