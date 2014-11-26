@@ -1,0 +1,116 @@
+<head>
+  <title>{{ title }}</title>
+  <script src="d3.v3.js" charset="utf-8"></script>
+  <link rel="stylesheet" href="style.css" type="text/css"></link>
+</head>
+<body>
+  <!--
+    TODO: want to embed these into this - but height/width getting botched
+          embedding will allow better use of css in the attributes
+  -->
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <defs>
+    <!-- TODO: embeded_images -->
+    <g id="user" width="45" height="50">
+      <path d="M31.77 31.35C35.78 28.21 39.46 22.68 39.46 17.19 39.46 7.7 31.73 0 22.19 0 12.65 0 4.91 7.7 4.91 17.19 4.91 22.68 8.81 28.32 12.83 31.46 5.63 35.12 0.56 41.57 0 50.02L1.83 50.02C2.44 42.1 7.61 35.47 14.73 32.68 16.99 33.77 19.51 34.39 22.19 34.39 24.87 34.39 27.39 33.77 29.65 32.68 36.77 35.47 41.94 42.1 42.54 50.02L44.38 50.02C43.82 41.57 38.97 35.01 31.77 31.35M22.19 32.57C14.38 32.57 6.74 24.96 6.74 17.19 6.74 9.42 14.38 1.81 22.19 1.81 30 1.81 37.63 9.42 37.63 17.19 37.63 24.96 30 32.57 22.19 32.57Z"/>
+    </g>
+  </defs>
+</svg>
+<div id="diagram">
+{{ body }}
+</div>
+<div id="desc-wrap">
+  <div id="desc">
+  </div>
+</div>
+<script>
+/* selecting an edge is difficult */
+/* instead of relying upon mouseover/mouseout, having mouseover sticky */
+
+var current_node = null;
+var old_nodes=[];
+
+/* used for hilighting */
+function markClass(id, className) {
+  if (id && className) {
+    d3.select("#"+id).classed(className, true)
+    old_nodes.push(["#"+id, className]);
+  }
+}
+
+function cleanupEdge(id) {
+  // cleanup last highlight
+  while(node = old_nodes.pop()) {
+    d3.select(node[0]).classed(node[1], false);
+  }
+}
+
+function displayEdge(datum) {
+  markClass(datum.id, 'src-dest');
+  var id = datum.id;
+  for(var n in datum) {
+    if(n != "desc" && n != "id") {
+      console.debug("["+n+"]", datum[n]);
+      markClass(datum[n], n)
+    }
+  }
+  d3.select("#desc").html(datum.desc || "");
+}
+
+function extractDatum(node, datum) {
+  var info = d3.select(node).select("a")
+  if (info && info[0] && info[0][0]) {
+    info = info.attr("xlink:title");
+  } else {
+    info = null;
+  }
+  if (info) {
+    var attrs = info.split("|")
+    // class:id:filename - class = (config|client|server|client_config|server_config)
+    for(var attr_num = 0; attr_num < attrs.length ; attr_num++) {
+      var attr = attrs[attr_num].trim();
+      attr_parts = attr.split(":")
+      if (attr_parts[1]) {
+        // TODO: handle duplicate attributes?
+        datum[attr_parts[0]] = attr_parts[1];
+        // TODO: add specific support for 3rd parameter (tablename/filename)
+        // if (attr_parts[2])
+        //   attr["filename"] = attr_parts[2];
+      } else {
+        datum["desc"] = attr_parts[0];
+      }
+    }
+  }
+  return datum;
+}
+
+d3.selectAll(".node").on('mouseover', function() {
+  d3.select(this).classed('active', true)
+}).on('mouseout', function() {
+  d3.select(this).classed('active', false)
+});
+d3.selectAll(".node").datum(function() {
+  var datum = extractDatum(this, {"id" : this.id});
+  if (datum["class"]) {
+    d3.select(this).classed(datum["class"], true);
+    delete datum["class"];
+  }
+
+  return datum;
+});
+d3.selectAll(".edge").datum(function(){
+  var datum = extractDatum(this, {"id" : this.id});
+  return datum;
+})
+.on('mouseover', function(datum) {
+/*  it is hard to select a line using mouseover/mouseout
+ *  instead just changing selection on mouseover
+ */
+  if (this.id != current_node) {
+    cleanupEdge(current_node);
+    current_node = this.id;
+    displayEdge(datum);
+  }
+}); 
+</script>
+</body>
