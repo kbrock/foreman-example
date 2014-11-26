@@ -1,0 +1,132 @@
+digraph ForemanMedia {
+
+  graph [ fontname="helvetica-bold" ]
+  node  [ shape="Mrecord" style="filled" fontname="helvetica" fillcolor="#ffffff" penwidth="2" ]
+  edge  [ arrowsize="0.5" fontname="helvetica"]
+
+################
+#    foreman
+################
+
+  foreman_os        [ id="foreman_os" label="{Operating System|(provision template)}" ]
+  foreman_pt        [ id="foreman_pt" label="{ptable}" ]
+  foreman_iso       [ id="foreman_iso" label="{medium}" ]
+
+# configuration profile
+  foreman_host_group [ id="foreman_host_group" label="{Host Group}" ]
+  foreman_subnet     [ id="foreman_subnet" label="{Subnet}" ]
+# -------
+
+  subgraph cluster_foreman {
+    foreman_server [ id="foreman_server" label="{Foreman Server}" tooltip="foreman only | class:noui"]
+    foreman_server -> foreman_host_group [ id="foreman_server_foreman_host_group"]
+    foreman_server -> foreman_os         [ id="foreman_server_foreman_os"]
+
+    foreman_os -> foreman_iso    [ headlabel="*"  id="foreman_os_foreman_iso"]
+    foreman_os -> foreman_pt     [ headlabel="*"  id="foreman_os_foreman_pt"]
+
+    # optinally in hostgroup
+    edge [style="dashed"]
+    foreman_host_group -> foreman_os [constraint="false" id="foreman_host_group_foreman_os"]
+    foreman_host_group -> foreman_iso    [ id="foreman_host_group_foreman_iso"]
+    foreman_host_group -> foreman_subnet [ id="foreman_host_group_foreman_subnet"]
+    edge [style="solid"]
+
+    label="Foreman Bare metal Provision Dialog"
+    style = "rounded";
+    /*
+    foreman_pr_ca [ label="{Bare metal|Catalog}"]
+    foreman_pr_ca -> foreman_host_group
+    foreman_pr_ca -> foreman_os
+    foreman_pr_ca -> foreman_iso
+
+#    foreman_pr_cu [ label="{Bare metal|Customization}"]
+    foreman_pr_ca -> foreman_pt
+    foreman_pr_ca -> foreman_subnet
+    */
+  }
+
+###
+# PXE
+###
+  subgraph cluster_pxe {
+    pxe_sit       [ id="pxe_sit" label="{System Image Type}" tooltip="foreman only | class:noui" ]
+    pxe_ct        [ id="pxe_ct" label="{customization template}" ]
+    pxe_iso       [ id="pxe_iso" label="{iso_image|pxe image}" ]
+
+    pxe_provision_type [ id="pxe_provision_type" label = "Provision Type"]
+    pxe_iso_data_store [ id="pxe_iso_data_store" label = "ISO data store" tooltip="foreman only | class:noui" ]
+
+    #pxe_subnet -> pxe_server
+    pxe_provision_type -> pxe_server
+    pxe_provision_type -> pxe_iso_data_store
+
+    pxe_iso -> pxe_sit
+    pxe_sit -> pxe_ct
+    pxe_server
+    pxe_iso_data_store
+
+    pxe_server -> pxe_iso
+    pxe_iso_data_store -> pxe_iso
+
+    label="pxe"
+    style = "rounded";
+    /*
+    pxe_pr [ id="pxe_pr" label="{Provisioning Dialog|Bare metal}"]
+    pxe_pr -> pxe_server
+    pxe_pr -> pxe_os
+    pxe_pr -> pxe_ct
+    pxe_pr -> pxe_iso
+    */
+  }
+
+####
+# ALL
+####
+  os        [ id="os" label="{Operating System}" ]
+  ct        [ id="ct" label="{provisioning template|customization template|full}" ]
+  pt        [ id="pt" label="{ptable|customization template|partial}" ]
+  iso       [ id="iso" label="{medium|iso_image|pxe image}" ]
+
+# configuration profile
+  host_group [ id="host_group" label="{Host Group}" color="#336699" fontcolor="#336699" fillcolor="#cccccc" ]
+  subnet     [ id="subnet" label="{Subnet}"  color="#336699" fontcolor="#336699" fillcolor="#cccccc" ]
+# -------
+
+  os -> ct     [ headlabel="1" ]
+  os -> iso    [ headlabel="*" ]
+  os -> pt     [ headlabel="*" ]
+  ct -> pt     [ headlabel="*" constraint="false" ]
+
+# pxe only
+//  pxe_server [ color="#996633" fontcolor="#336699" fillcolor="#cccccc"]
+//  pxe_server -> iso [ color="#996633" fontcolor="#336699" fillcolor="#996633"]
+
+  # optinally in hostgroup
+  edge [style="dashed"]
+  host_group -> os
+  host_group -> iso
+  host_group -> subnet
+
+  edge [style="solid"]
+
+  subgraph cluster_all {
+    label="generalized"
+    style = "rounded";
+    pr [ id="pr" label="{Provisioning Dialog|Bare metal}"]
+//    pr -> pxe_server
+    pr -> os
+    pr -> ct
+    pr -> pt
+    pr -> iso
+    pr -> host_group
+    pr -> subnet
+  }
+/*
+  subgraph cluster_key {
+    foreman [ color="#336699" fontcolor="#336699" fillcolor="#cccccc" ]
+    label="key"
+  }
+*/
+
+}
