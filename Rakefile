@@ -9,6 +9,7 @@ task :default => :html
 task :html => 'model.html'
 
 class DotHelper
+  @@template = nil
   def self.dot2svg(target, source)
     #sh "pandoc -o #{t.name} #{t.source}"
     puts `dot -Tsvg #{source} -o #{target}`
@@ -27,12 +28,15 @@ class DotHelper
     index_contents = template(true).render binding, title: title, body: body
     File.write(target, index_contents)
     puts "#{source} -> #{target}"
-    reload_browser
   end
 
   # load the template for this file
   def self.template(force = false)
-    @@template = (@@template.nil? || force) ? Tilt.new(TEMPLATE_NAME) : @@template
+    if (@@template.nil? || force)
+      @@template = Tilt.new(TEMPLATE_NAME)
+    else
+      @@template
+    end
   end
 
   def self.reload_browser
@@ -47,4 +51,5 @@ end
 
 rule '.html' => [".svg", STYLE_NAME, TEMPLATE_NAME] do |t|
   DotHelper.svg2html(t.name, t.source)
+  DotHelper.reload_browser
 end

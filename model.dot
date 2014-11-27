@@ -1,12 +1,15 @@
 digraph ForemanMedia {
-
+  #concentrate="true"
+  #splines="ortho"
   graph [ fontname="helvetica-bold" ]
   node  [ shape="Mrecord" style="filled" fontname="helvetica" fillcolor="#ffffff" penwidth="2" ]
   edge  [ arrowsize="0.5" fontname="helvetica"]
-
+  
 ################
 #    foreman
 ################
+
+{rank=same foreman_server pxe_provision_type pr}
 
   foreman_os        [ id="foreman_os" label="{Operating System|(provision template)}" ]
   foreman_pt        [ id="foreman_pt" label="{ptable}" ]
@@ -32,7 +35,7 @@ digraph ForemanMedia {
     foreman_host_group -> foreman_subnet [ id="foreman_host_group_foreman_subnet"]
     edge [style="solid"]
 
-    label="Foreman Bare metal Provision Dialog"
+    label="Foreman Baremetal Provisioning"
     style = "rounded";
     /*
     foreman_pr_ca [ label="{Bare metal|Catalog}"]
@@ -128,5 +131,4 @@ digraph ForemanMedia {
     label="key"
   }
 */
-
 }
