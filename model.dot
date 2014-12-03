@@ -9,10 +9,10 @@ digraph ForemanMedia {
 #    foreman
 ################
 
-{rank=same foreman_server pxe_provision_type pr}
+#{rank=same foreman_server pxe_provision_type pr}
 
   foreman_os        [ id="foreman_os" label="{Operating System|(provision template)}" ]
-  foreman_pt        [ id="foreman_pt" label="{ptable}" ]
+  foreman_pt        [ id="foreman_pt" label="{ptable}" tooltip="same:pxe_ct"]
   foreman_iso       [ id="foreman_iso" label="{medium}" ]
 
 # configuration profile
@@ -22,17 +22,17 @@ digraph ForemanMedia {
 
   subgraph cluster_foreman {
     foreman_server [ id="foreman_server" label="{Foreman Server}" tooltip="foreman only | class:noui"]
-    foreman_server -> foreman_host_group [ id="foreman_server_foreman_host_group"]
-    foreman_server -> foreman_os         [ id="foreman_server_foreman_os"]
+    foreman_server -> foreman_host_group [ ]
+    foreman_server -> foreman_os         [ ]
 
-    foreman_os -> foreman_iso    [ headlabel="*"  id="foreman_os_foreman_iso"]
-    foreman_os -> foreman_pt     [ headlabel="*"  id="foreman_os_foreman_pt"]
+    foreman_os -> foreman_iso    [ headlabel="*" ]
+    foreman_os -> foreman_pt     [ headlabel="*" ]
 
     # optinally in hostgroup
     edge [style="dashed"]
-    foreman_host_group -> foreman_os [constraint="false" id="foreman_host_group_foreman_os"]
-    foreman_host_group -> foreman_iso    [ id="foreman_host_group_foreman_iso"]
-    foreman_host_group -> foreman_subnet [ id="foreman_host_group_foreman_subnet"]
+    foreman_host_group -> foreman_os [constraint="false" ]
+    foreman_host_group -> foreman_iso    [ ]
+    foreman_host_group -> foreman_subnet [ ]
     edge [style="solid"]
 
     label="Foreman Baremetal Provisioning"
@@ -86,44 +86,48 @@ digraph ForemanMedia {
 ####
 # ALL
 ####
-  os        [ id="os" label="{Operating System}" ]
-  ct        [ id="ct" label="{provisioning template|customization template|full}" ]
-  pt        [ id="pt" label="{ptable|customization template|partial}" ]
-  iso       [ id="iso" label="{medium|iso_image|pxe image}" ]
-
-# configuration profile
-  host_group [ id="host_group" label="{Host Group}" color="#336699" fontcolor="#336699" fillcolor="#cccccc" ]
-  subnet     [ id="subnet" label="{Subnet}"  color="#336699" fontcolor="#336699" fillcolor="#cccccc" ]
-# -------
-
-  os -> ct     [ headlabel="1" ]
-  os -> iso    [ headlabel="*" ]
-  os -> pt     [ headlabel="*" ]
-  ct -> pt     [ headlabel="*" constraint="false" ]
-
-# pxe only
-//  pxe_server [ color="#996633" fontcolor="#336699" fillcolor="#cccccc"]
-//  pxe_server -> iso [ color="#996633" fontcolor="#336699" fillcolor="#996633"]
-
-  # optinally in hostgroup
-  edge [style="dashed"]
-  host_group -> os
-  host_group -> iso
-  host_group -> subnet
-
-  edge [style="solid"]
-
   subgraph cluster_all {
     label="generalized"
     style = "rounded";
-    pr [ id="pr" label="{Provisioning Dialog|Bare metal}"]
 //    pr -> pxe_server
-    pr -> os
-    pr -> ct
-    pr -> pt
-    pr -> iso
-    pr -> host_group
-    pr -> subnet
+//    pr -> os
+//    pr -> ct
+//    pr -> pt
+//    pr -> iso
+//    pr -> host_group
+//    pr -> subnet
+
+    provision_type [ id="provision_type" label = "Provision Type"]
+    provision_server [ id="provision_server" label="{ISO data store|pxe|foreman server}"]
+    provision_type -> provision_server
+
+    os        [ id="os" label="{Operating System}" ]
+    ct        [ id="ct" label="{provisioning template|customization template|full}" ]
+    pt        [ id="pt" label="{ptable|customization template|partial}" ]
+    iso       [ id="iso" label="{medium|iso_image|pxe image}" ]
+
+  # configuration profile
+    host_group [ id="host_group" label="{Host Group}" color="#336699" fontcolor="#336699" fillcolor="#cccccc" ]
+    subnet     [ id="subnet" label="{Subnet}"  color="#336699" fontcolor="#336699" fillcolor="#cccccc" ]
+  # -------
+
+    os -> ct     [ headlabel="1" ]
+    os -> iso    [ headlabel="*" ]
+    os -> pt     [ headlabel="*" ]
+    ct -> pt     [ headlabel="*" constraint="false" ]
+
+  # pxe only
+  //  pxe_server [ color="#996633" fontcolor="#336699" fillcolor="#cccccc"]
+  //  pxe_server -> iso [ color="#996633" fontcolor="#336699" fillcolor="#996633"]
+
+    # optinally in hostgroup
+    edge [style="dashed"]
+    host_group -> os
+    host_group -> iso
+    host_group -> subnet
+
+    edge [style="solid"]
+
   }
 /*
   subgraph cluster_key {

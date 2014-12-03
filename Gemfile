@@ -6,6 +6,7 @@ gem 'foreman_api'
 group "diagram" do
   gem 'guard'
   gem 'guard-rake'
+  gem 'nokogiri'
 
   # alt, could use erb
   # using liquid to make transition to jekyll easier

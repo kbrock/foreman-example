@@ -31,8 +31,17 @@ body {
 text {
   fill: #666666;
 }
+
 .node.noui path {
   fill: #dddddd;
+}
+
+.node.same path {
+  stroke: red;
+}
+
+.node.same  text {
+  fill: red;
 }
 
 /* machine title */
@@ -70,7 +79,6 @@ text {
 .server-config.node polyline {
   fill: #cccc00;
 }
-
 
 .edge.src-dest polygon {
   stroke: #996600;

@@ -1,6 +1,7 @@
 require 'erb'
 require 'liquid'
 require 'tilt'
+require 'nokogiri'
 
 STYLE_NAME='style.css'
 TEMPLATE_NAME='index.html.liquid'
@@ -17,8 +18,8 @@ class DotHelper
   end
 
   def self.svg2html(target, source)
-    title = source.sub('.svg','').gsub(/[_-]/,' ').gsub(/(^| )(.)/) { "#{$1}#{$2.upcase}" }
     body = File.read(source)
+    title = Nokogiri::XML.parse(File.read(source)).css("title").first.content()
 
     # remove xml version from the svg file
     body.gsub!(/^<\?.*\?>\n/,'')
