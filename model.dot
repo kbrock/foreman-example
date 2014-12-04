@@ -1,8 +1,8 @@
-digraph ForemanMedia {
+digraph ProvisioningDialog {
   #concentrate="true"
   #splines="ortho"
   graph [ fontname="helvetica-bold" ]
-  node  [ shape="Mrecord" style="filled" fontname="helvetica" fillcolor="#ffffff" penwidth="2" ]
+  node  [ id="\N" shape="Mrecord" style="filled" fontname="helvetica" fillcolor="#ffffff" penwidth="2" ]
   edge  [ arrowsize="0.5" fontname="helvetica"]
   
 ################
@@ -11,17 +11,17 @@ digraph ForemanMedia {
 
 #{rank=same foreman_server pxe_provision_type pr}
 
-  foreman_os        [ id="foreman_os" label="{Operating System|(provision template)}" ]
-  foreman_pt        [ id="foreman_pt" label="{ptable}" tooltip="same:pxe_ct"]
-  foreman_iso       [ id="foreman_iso" label="{medium}" ]
+  foreman_os        [ label="{Operating System|(provision template)}" ]
+  foreman_pt        [ label="{ptable}" tooltip="same:pxe_ct"]
+  foreman_iso       [ label="{medium}" ]
 
 # configuration profile
-  foreman_host_group [ id="foreman_host_group" label="{Host Group}" ]
-  foreman_subnet     [ id="foreman_subnet" label="{Subnet}" ]
+  foreman_host_group [ label="{Host Group}" ]
+  foreman_subnet     [ label="{Subnet}" ]
 # -------
 
   subgraph cluster_foreman {
-    foreman_server [ id="foreman_server" label="{Foreman Server}" tooltip="foreman only | class:noui"]
+    foreman_server [ label="{Foreman Server}" tooltip="foreman only | class:noui"]
     foreman_server -> foreman_host_group [ ]
     foreman_server -> foreman_os         [ ]
 
@@ -53,12 +53,12 @@ digraph ForemanMedia {
 # PXE
 ###
   subgraph cluster_pxe {
-    pxe_sit       [ id="pxe_sit" label="{System Image Type}" tooltip="foreman only | class:noui" ]
-    pxe_ct        [ id="pxe_ct" label="{customization template}" ]
-    pxe_iso       [ id="pxe_iso" label="{iso_image|pxe image}" ]
+    pxe_sit       [ label="{System Image Type}" tooltip="foreman only | class:noui" ]
+    pxe_ct        [ label="{customization template}" ]
+    pxe_iso       [ label="{iso_image|pxe image}" ]
 
-    pxe_provision_type [ id="pxe_provision_type" label = "Provision Type"]
-    pxe_iso_data_store [ id="pxe_iso_data_store" label = "ISO data store" tooltip="foreman only | class:noui" ]
+    pxe_provision_type [ label = "Provision Type"]
+    pxe_iso_data_store [ label = "ISO data store" tooltip="foreman only | class:noui" ]
 
     #pxe_subnet -> pxe_server
     pxe_provision_type -> pxe_server
@@ -75,7 +75,7 @@ digraph ForemanMedia {
     label="pxe"
     style = "rounded";
     /*
-    pxe_pr [ id="pxe_pr" label="{Provisioning Dialog|Bare metal}"]
+    pxe_pr [ label="{Provisioning Dialog|Bare metal}"]
     pxe_pr -> pxe_server
     pxe_pr -> pxe_os
     pxe_pr -> pxe_ct
@@ -97,18 +97,18 @@ digraph ForemanMedia {
 //    pr -> host_group
 //    pr -> subnet
 
-    provision_type [ id="provision_type" label = "Provision Type"]
-    provision_server [ id="provision_server" label="{ISO data store|pxe|foreman server}"]
+    provision_type   [ label = "Provision Type"]
+    provision_server [ label="{ISO data store|pxe|foreman server}"]
     provision_type -> provision_server
 
-    os        [ id="os" label="{Operating System}" ]
-    ct        [ id="ct" label="{provisioning template|customization template|full}" ]
-    pt        [ id="pt" label="{ptable|customization template|partial}" ]
-    iso       [ id="iso" label="{medium|iso_image|pxe image}" ]
+    os        [ label="{Operating System}" ]
+    ct        [ label="{provisioning template|customization template|full}" ]
+    pt        [ label="{ptable|customization template|partial}" ]
+    iso       [ label="{medium|iso_image|pxe image}" ]
 
   # configuration profile
-    host_group [ id="host_group" label="{Host Group}" color="#336699" fontcolor="#336699" fillcolor="#cccccc" ]
-    subnet     [ id="subnet" label="{Subnet}"  color="#336699" fontcolor="#336699" fillcolor="#cccccc" ]
+    host_group [ label="{Host Group}" color="#336699" fontcolor="#336699" fillcolor="#cccccc" ]
+    subnet     [ label="{Subnet}"  color="#336699" fontcolor="#336699" fillcolor="#cccccc" ]
   # -------
 
     os -> ct     [ headlabel="1" ]

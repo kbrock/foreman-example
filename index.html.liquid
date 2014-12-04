@@ -14,9 +14,6 @@
   </div>
 </div>
 <script>
-/* selecting an edge is difficult */
-/* instead of relying upon mouseover/mouseout, having mouseover sticky */
-
 var current_edge = {};
 
 function markClass(id, className, enabled) {
@@ -87,10 +84,10 @@ d3.selectAll(".node").datum(function() {
 d3.selectAll(".edge").datum(function(){
   return extractDatum(this, {"id" : this.id});
 })
-.on('mouseover', function(datum) {
-/*  since it is hard to select a line using mouseover/mouseout,
- *   implementing mouseover with logic of both
+/*  selecting an edge is difficult
+ *  instead of relying upon mouseover/mouseout, making mouseover sticky
  */
+.on('mouseover', function(datum) {
   if (datum.id != current_edge.id) {
     displayRelations(current_edge, 'src-dest', false);
     current_edge = datum;
