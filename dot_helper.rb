@@ -31,17 +31,10 @@ class DotHelper
   end
 
   def embed_images(body)
-    embedded_images = []
-    doc = Nokogiri::XML.parse(body)
-    .css("image")
-    # <image xlink:href="cloud.svg" width="81px" height="46px" preserveAspectRatio="xMinYMin meet" x="405.5" y="-46.5"/>
-    # <use xlink:href = "#user"/>
-
-    body, embedded_images.join("\n")
   end
 
-  def body2title(body)
-    Nokogiri::XML.parse(body).css("title").first.content()
+  def extractTitle(doc)
+    doc.css("title").first.content()
   end
 
   def svg2html(target, source)
