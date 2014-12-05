@@ -1,0 +1,29 @@
+digraph ForemanMedia {
+
+  graph [ fontname="helvetica-bold" nodesep="1" ] // splines="ortho" ]
+  node  [ id="\N" shape="Mrecord" style="filled" fontname="helvetica" fillcolor="#ffffff" penwidth="2" ]
+  edge  [ arrowsize="0.5" fontname="helvetica" ]
+
+  systems_management_service [ label="{Systems Management Service|(tab)}"]
+  ems_vip          [ label="{VirtualInfraProvider, CloudProvider|(tab)}"]
+  foreman_provider [ label="{SystemProvider|ForemanProvider}"]
+  managed_system   [ label="{managed_system|(managed entity)}"]
+  host             [ label="{host|(managed entity)}"]
+  vm_or_template   [ label="{vm_or_template|(managed entity)}"]
+  computer_system  [ label="{Computer System|host, vm, template}"]
+  foreman_provider   -> systems_management_service
+  systems_management_service   -> managed_system
+  managed_system:s   -> computer_system:n
+  ems_vip            -> host
+  ems_vip            -> vm_or_template
+
+  host:s             -> operating_system    [ constraint="true" ]
+  vm_or_template     -> operating_system    [ constraint="true" ]
+  host:s             -> hardware            [ constraint="true" ]
+  vm_or_template     -> hardware            [ constraint="true" ]
+
+  computer_system:s  -> operating_system:s  [ constraint="false" ]
+  computer_system:s  -> hardware:s          [ constraint="false" ]
+  host               -> computer_system     [ style="dotted" constraint="true"]
+  vm_or_template     -> computer_system     [ style="dotted" constraint="true"]
+}

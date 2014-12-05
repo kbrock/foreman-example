@@ -1,7 +1,7 @@
 source 'https://rubygems.org'
-#gem 'hammer_cli_foreman'
 
 gem 'foreman_api'
+gem 'active_hash'
 
 group "diagram" do
   gem 'guard'
