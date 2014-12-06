@@ -9,7 +9,13 @@ require_relative 'dot_helper'
 STYLE_NAME='style.css'
 TEMPLATE_NAME='index.html.liquid'
 
-task :default => 'model.html'
+task :default => :html
+
+task :html do
+  Dir.glob("*.dot").each do |f|
+    Rake::Task[f.sub(/\.dot$/, '.html')].invoke
+  end
+end
 
 task :refresh_browser do
   puts "refreshing browser"
