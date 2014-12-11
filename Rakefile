@@ -1,7 +1,8 @@
 require "dothtml/dot_task"
 
 Dothtml::DotTask.new do |t|
-  t.d3js      = "d3js.v3.js"
+  t.d3js      = "d3.v3.js"
+  t.style     = "style.css"
 end
 
 task :default => :html
