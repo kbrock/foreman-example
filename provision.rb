@@ -15,39 +15,56 @@ module ProvidersForeman
       @target_host_name = target_host_name
     end
 
+    def provider
+      @provider ||= Provider.new(@args)
+    end
+
     def c
       @c ||= ProvidersForeman::Connection.new(args)
     end
 
+    def print_host_info(h)
+      # puts "##{h["id"]} proxy:[#{h["puppet_proxy_id"]} ca: #{h["puppet_ca_proxy_id"]}]"
+      #puts "   :: subnet: #{h.subnet.try(:name)}"
+      puts "   :: operatingsystem: #{h.operating_system_flavor.try(:name)}"
+      #puts "   :: domain: #{h["domain_name"]} (#{h["domain_id"]})" if h["domain_id"]
+      #puts "   :: environment: #{h["environment_name"]} (#{h["environment_id"]})" if h["environment_id"]
+      #puts "   :: compute_profile: #{h["compute_profile_name"]} (#{h["compute_profile_id"]})" if h["compute_profile_id"]
+      puts "   :: ptable: #{h.ptable.try(:name)}"
+      puts "   :: medium: #{h.medium.try(:name)}"
+      #puts "   :: architecture: #{h["architecture_name"]} (#{h["architecture_id"]})" if h["architecture_id"]
+      #puts "   :: realm: #{h["realm_name"]} (#{h["realm_id"]})" if h["realm_id"]
+    end
+
     def print_host(host)
-      puts "##{host["id"]}: #{host["name"]} #{host["environment_id"]}:#{host["environment_name"]} (uuid: #{host["uuid"]})"
-      puts "=> enabled: #{host["enabled"]} build: #{host["build"]} managed: #{host["managed"]}"
-      puts "hostgroup #{host["hostgroup_id"]}:#{host["hostgroup_name"]}" if host["hostgroup_id"]
-      puts "architecture #{host["architecture_id"]}:#{host["architecture_name"]}" if host["architecture_id"]
-      puts "operatingsystem #{host["operatingsystem_id"]}:#{host["operatingsystem_name"]}" if host["operatingsystem_id"]
-      puts "ptable #{host["ptable_id"]}:#{host["ptable_name"]}" if host["ptable_id"]
-      puts "medium #{host["medium_id"]}:#{host["medium_name"]}" if host["medium_id"]
+      puts "##{host.foreman_id}: #{host.hostname} (uuid: #{host.uuid})" # #{host.environment_id}:#{host.environment_name}"
+      puts "   :: enabled: #{host.enabled} build: #{host.build} managed: #{host.managed}"
+      print_host_info(host)
+      puts "hostgroup #{host.configuration_profile.try(:name) || "none"}"
     end
 
     def print_hostgroup(hg)
       # note, these params will only be populated if overriding. need to reference "ancestory" (list of ids) to get values
-      puts " #{hg["title"]} (#{hg["environment_name"]}) ##{hg["id"]} proxy:[#{hg["puppet_proxy_id"]} ca: #{hg["puppet_ca_proxy_id"]}]"
-      puts "   :: subnet: #{hg["subnet_name"]} (#{hg["subnet_id"]})" if hg["subnet_id"]
-      puts "   :: operatingsystem: #{hg["operatingsystem_name"]} (#{hg["operatingsystem_id"]})" if hg["operatingsystem_id"]
-      puts "   :: domain: #{hg["domain_name"]} (#{hg["domain_id"]})" if hg["domain_id"]
-      puts "   :: environment: #{hg["environment_name"]} (#{hg["environment_id"]})" if hg["environment_id"]
-      puts "   :: compute_profile: #{hg["compute_profile_name"]} (#{hg["compute_profile_id"]})" if hg["compute_profile_id"]
-      puts "   :: ptable: #{hg["ptable_name"]} (#{hg["ptable_id"]})" if hg["ptable_id"]
-      puts "   :: medium: #{hg["medium_name"]} (#{hg["medium_id"]})" if hg["medium_id"]
-      puts "   :: architecture: #{hg["architecture_name"]} (#{hg["architecture_id"]})" if hg["architecture_id"]
-      puts "   :: realm: #{hg["realm_name"]} (#{hg["realm_id"]})" if hg["realm_id"]
+      puts "##{hg.foreman_id}: #{hg.title}, #{hg.name}" # (#{hg["environment_name"]})
+      print_host_info(hg)
+    end
+
+    def refresh
+      refresher = ProvidersForeman::Inventory.new
+
+      inv = refresher.ems_inv_to_hashes(provider)
+      refresher.save_ems_inventory(provider, inv)
     end
 
     def run
-      # get list of foreman hosts
-      #puts hosts.collect { |h| " #{h["name"]} #{h["mac"]} ##{h["id"]}" }
-      host = c.hosts.detect { |h| h["name"].include?(target_host_name)}
-      host ||= c.hosts("page" => 2).detect { |h| h["name"].include?(target_host_name)}
+      refresh
+
+      default_host = ConfiguredSystem.find_by_subname(target_host_name)
+
+      host = ask_with_menu("Host",
+        ConfiguredSystem.all.each_with_object({}) do |ms, h|
+          h["#{ms.name} (#{ms.ip})"] = ms
+        end, default_host)
 
       puts
       puts "Host"
@@ -55,28 +72,21 @@ module ProvidersForeman
       print_host(host)
       puts
 
-      # architecture is not stored for all hostgroups, so need to bring back all and denormalize before filtering)
-      hostgroups           = c.denormalized_hostgroups(nil, "architecture_name" => host["architecture_name"])
-      default_hostgroup_id = host["hostgroup_id"]
-      default_hostgroup    = hostgroups.detect { |hg| hg["id"] == default_hostgroup_id }
-
-      operating_systems = c.operating_systems("search" => "architecture=#{host["architecture_name"]}")
-      default_os_id     = host["operatingsystem_id"]
-      default_os_id   ||= default_hostgroup["operatingsystem_id"] if default_hostgroup
-      default_os        = operating_systems.detect { |o| o["id"] == default_os_id }
+      default_hostgroup = host.configuration_profile
+      default_os = host.operating_system_flavor || default_hostgroup.try(:operating_system_flavor)
 
       hostgroup = ask_with_menu("Host Group",
-        hostgroups.each_with_object({}) do |hg, h|
-          hg_title = "#{hg["title"]}"
-          hg_title << "(#{hg["environment_name"]})" if hg["environment_name"]
-          hg_title << " [OS: #{hg["operating_system_name"]}]" if hg["operating_system_id"]
+        ConfigurationProfile.all.each_with_object({}) do |hg, h|
+          hg_title = "#{hg.title}"
+#          hg_title << "(#{hg.environment_name})" if hg.environment_name?
+          hg_title << " [OS: #{hg.operating_system_flavor.name}]" if hg.operating_system_flavor?
           h[hg_title] = hg
         end, default_hostgroup)
 
       # [might be set by host group]
       os  = ask_with_menu("OS",
-                          operating_systems.each_with_object({}) do |o, h|
-                            h["#{o["fullname"]} (#{o["family"]})"] = o
+                          OperatingSystemFlavor.all.each_with_object({}) do |o, h|
+                            h["#{o.fullname} (#{o.family})"] = o
                           end,
                           default_os)
 
@@ -87,56 +97,45 @@ module ProvidersForeman
       # print OS?
       puts
 
-      # TODO: filter based upon os
-      os = c.raw_operating_systems.show("id" => os["id"]).first
-      medias = os["media"] #c.media #("search" => "family=#{os["family"]}")
-      ptables = os["ptables"] #c.ptable #({"search" => "family=#{os["family"]}"})
-
       # TODO: client side filtering based upon OS
-      default_medium_id = host["medium_id"] || hostgroup["medium_id"]
-      default_medium = medias.detect { |m| m["id"] == default_medium_id }
+      default_medium = host.medium || hostgroup.medium
       medium  = ask_with_menu("Media",
-                              medias.each_with_object({}) do |m, h|
-                                h["#{m["name"]}"] = m
+                              CustomizationScript.media.each_with_object({}) do |m, h|
+                                h[m.name] = m
                               end,
                               default_medium)
 
       # TODO: client side filtering based upon OS
-      default_ptable_id = host["ptable_id"] || hostgroup["ptable_id"]
-      default_ptable = ptables.detect { |pt| pt["id"] == default_ptable_id }
+      default_ptable = host.ptable || hostgroup.ptable
       partition = ask_with_menu("Partition",
-        ptables.each_with_object({}) do |pt, h|
-          h["#{pt["name"]}"] = pt
+        CustomizationScript.ptables.each_with_object({}) do |pt, h|
+          h[pt.name] = pt
         end, default_ptable)
 
-      default_subnet = host["subnet_id"]
-      subnet = ask_with_menu("Subnet",
-                              c.subnets.each_with_object({}) do |s, h|
-                                h["#{s["name"]}"] = s
-                              end,
-                              default_subnet)
+      # default_subnet = host["subnet_id"]
+      # subnet = ask_with_menu("Subnet",
+      #                         c.subnets.each_with_object({}) do |s, h|
+      #                           h["#{s["name"]}"] = s
+      #                         end,
+      #                         default_subnet)
 
-      root_password = ask("Root Password: ") { |q| q.echo = '*' }
-
-      default_hostname = host["name"]
-      hostname = ask("Hostname: ") { |q| q.default = default_hostname }
-
-      default_ip_address = host["ip"]
-      ip_address = ask("IP Address: ") { |q| q.default = default_ip_address }
+      root_password = ask_for_password("Root Password", "smartvm")
+      hostname = ask_for_string("hostname", host.hostname)
+      ip_address = ask_for_string("IP Address: ", host.ip)
 
       # new_host is the new values (remove the ones that are equal to the existing host record)
       new_host = {
         "build"              => true,
-        "hostgroup_id"       => hostgroup["id"],
+        "hostgroup_id"       => hostgroup.foreman_id,
         "ip"                 => ip_address,
-        "medium_id"          => medium["id"],
+        "medium_id"          => medium.foreman_id,
         "name"               => hostname,
-        "operatingsystem_id" => os["id"], #?
-        "ptable_id"          => partition["id"],
+        "operatingsystem_id" => os.foreman_id,
+        "ptable_id"          => partition.foreman_id,
         "root_pass"          => root_password,
-        "subnet_id"          => subnet["id"],
+#        "subnet_id"          => subnet.foreman_id,
       }.delete_if { |n, v| host[n] == v }
-      new_host["id"] = host["id"]
+      new_host["id"] = host.foreman_id
 
 
       c.raw_hosts.update(new_host)
@@ -147,6 +146,9 @@ module ProvidersForeman
       print_host(host)
       puts
 
+      return
+
+      # TODO: where does this go?
       c.raw_hosts.power("id" => host["id"], "power_action" => "off")
       print "Waiting for Power Off."
       loop { break if c.raw_hosts.power("id" => host["id"], "power_action" => "status").first["power"] == "off"; print "."; sleep 1 }
@@ -159,7 +161,6 @@ module ProvidersForeman
       loop { break unless c.raw_hosts.show("id" => host["id"]).first["build"]; print "."; sleep 10 }
       puts "Complete!"
       # ? way to leverage callbacks? either generic: please refresh all foreman hosts or please refresh specific foreman host
-
     end
   end
 end

@@ -3,18 +3,43 @@ module ProvidersForeman
   class PagedResponse
     include Enumerable
 
+    attr_accessor :resource
+    attr_accessor :remote_filter
+    attr_accessor :method
+
     attr_accessor :json
     attr_accessor :page
     attr_accessor :results
-
-    # total, subtotal, per_page
+    # total, subtotal, per_page, search, sort
     def initialize(json, filter = nil)
+    #def initialize(resource, remote_filter, method, json = nil, local_filter = nil)
       # able to pass a PagedResponse in
+
+      # @resource = resource
+      # @remote_filter = remote_filter
+      # @method = method
+
+      # # able to pass a PagedResponse in
+      # json ||= resource.send(method, remote_filter).first
+
+
       @json = json.is_a?(PagedResponse) ? json.json : json
 
       @results = @json["results"]
       @page = @json["page"]
       @results = self.class.prune(@results, filter)
+    end
+
+    def total
+      json["total"].to_i
+    end
+
+    def size
+      json["subtotal"].to_i
+    end
+
+    def empty?
+      size == 0
     end
 
     def each(&block)

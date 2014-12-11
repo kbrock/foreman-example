@@ -29,4 +29,25 @@ module HighlineHelper
     end
     selection
   end
+
+  def ask_for_string(prompt, default = nil)
+    just_ask(prompt, default)
+  end
+
+  def ask_for_password(prompt, default = nil)
+    pass = just_ask(prompt, default.present? ? "********" : nil) do |q|
+      q.echo = '*'
+      yield q if block_given?
+    end
+    pass == "********" ? (default || "") : pass
+  end
+
+  def just_ask(prompt, default = nil, validate = nil, error_text = nil, klass = nil)
+    ask("Enter the #{prompt}: ", klass) do |q|
+      q.default = default if default
+      q.validate = validate if validate
+      q.responses[:not_valid] = error_text ? "Please provide #{error_text}" : "Please provide in the specified format"
+      yield q if block_given?
+    end
+  end
 end

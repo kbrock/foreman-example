@@ -4,26 +4,64 @@ digraph ForemanMedia {
   node  [ id="\N" shape="Mrecord" style="filled" fontname="helvetica" fillcolor="#ffffff" penwidth="2" ]
   edge  [ arrowsize="0.5" fontname="helvetica" ]
 
-  systems_management_service [ label="{Systems Management Service|(tab)}"]
-  ems_vip          [ label="{VirtualInfraProvider, CloudProvider|(tab)}"]
-  foreman_provider [ label="{SystemProvider|ForemanProvider}"]
-  managed_system   [ label="{managed_system|(managed entity)}"]
-  host             [ label="{host|(managed entity)}"]
-  vm_or_template   [ label="{vm_or_template|(managed entity)}"]
-  computer_system  [ label="{Computer System|host, vm, template}"]
-  foreman_provider   -> systems_management_service
-  systems_management_service   -> managed_system
-  managed_system:s   -> computer_system:n
-  ems_vip            -> host
-  ems_vip            -> vm_or_template
+  {
 
-  host:s             -> operating_system    [ constraint="true" ]
-  vm_or_template     -> operating_system    [ constraint="true" ]
-  host:s             -> hardware            [ constraint="true" ]
-  vm_or_template     -> hardware            [ constraint="true" ]
+    ems_provider            [ label="{EMS Provider\n(tab)}" ]
+    vm_or_template          [ label="{vm_or_template|(managed entity)}" ]
+    host                    [ label="{host|(managed entity)}" ]
 
-  computer_system:s  -> operating_system:s  [ constraint="false" ]
-  computer_system:s  -> hardware:s          [ constraint="false" ]
-  host               -> computer_system     [ style="dotted" constraint="true"]
-  vm_or_template     -> computer_system     [ style="dotted" constraint="true"]
+    computer_system         [ label="{Computer System|host, vm, template}" ]
+    operating_system        [ label="{operating system}" ]
+    hardware                [ label="{hardware}" ]
+
+    ems_provider            -> host
+    ems_provider            -> vm_or_template
+    host:s                  -> operating_system    [ constraint="true" ]
+    vm_or_template:s        -> operating_system    [ constraint="true" ]
+    host:s                  -> hardware            [ constraint="true" ]
+    vm_or_template:s        -> hardware            [ constraint="true" ]
+  }
+
+  { rank="same" ; host ; configured_system }
+  { rank="same" ; ems_provider ; foreman_provider  }
+
+# ------
+  computer_system:s       -> operating_system    [ constraint="true" ]
+  computer_system:s       -> hardware            [ constraint="true" ]
+  host                    -> computer_system     [ style="dotted" constraint="false" ]
+  vm_or_template          -> computer_system     [ style="dotted" constraint="false" ]
+# -------
+
+  foreman_provider        [ label="{Provider\nForemanProvider}" tooltip="class:done" ]
+  configuration_service   [ label="{Configuration Service\n(tab)}" tooltip="class:done" ]
+  configured_system       [ label="{Configured System\n(managed entity)|foreman_id|hostname|uuid|enabled|build|managed}" ]
+
+  configuration_profile   [ label="{Configuration Profile\nForemanHostGroup|foreman_id|name|title}" tooltip="class:done"]
+
+  operating_system_flavor [ label="{Operating System Flavor|family|description|fullname}" tooltip="class:done" ]
+  customization_scripts   [ label="{Customization Scripts|ptable\nmedium\nconfig template(p)|foreman_id|name|(family)}" tooltip="class:done" ]
+
+  foreman_provider        -> configuration_service   [ headlabel="*" ]
+  configuration_service   -> configuration_profile   [ constraint="false" headlabel="*" ]
+  configuration_service   -> configured_system       [ headlabel="*" ]
+
+  configured_system       -> computer_system         [ constraint="false" ]
+  configured_system       -> configuration_profile   [ constraint="false" headlabel="1" ]
+  configured_system       -> customization_scripts   [ constraint="false" headlabel="*" taillabel="*" ]
+  configured_system       -> customization_scripts   [ constraint="false" label="ptable" taillabel="1" headlabel="*"]
+  configured_system       -> customization_scripts   [ constraint="false" label="medium" taillabel="1" headlabel="*"]
+  #configured_system      -> subnet
+  configured_system       -> operating_system_flavor [ headlabel="1" taillabel="*" tooltip="class:done" ]
+  #configured_system      -> environment
+
+  configuration_profile   -> operating_system_flavor [ headlabel="1" taillabel="*" ]
+  configuration_profile   -> customization_scripts   [ headlabel="*" taillabel="*" ]
+  configuration_profile   -> customization_scripts   [ constraint="false" label="ptable" taillabel="1" headlabel="*"]
+  configuration_profile   -> customization_scripts   [ constraint="false" label="medium" taillabel="1" headlabel="*"]
+  #configuration_profile  -> environment
+  #configuration_profile  -> subnet
+
+  operating_system_flavor -> customization_scripts   [ constraint="false" label="ct(p)" headlabel="1" taillabel="*"]
+  operating_system_flavor -> customization_scripts   [ constraint="false" label="family" taillabel="*" headlabel="*"]
+
 }
