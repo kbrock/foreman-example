@@ -24,28 +24,22 @@ module ProvidersForeman
     end
 
     def print_host_info(h)
-      # puts "##{h["id"]} proxy:[#{h["puppet_proxy_id"]} ca: #{h["puppet_ca_proxy_id"]}]"
-      #puts "   :: subnet: #{h.subnet.try(:name)}"
       puts "   :: operatingsystem: #{h.operating_system_flavor.try(:name)}"
-      #puts "   :: domain: #{h["domain_name"]} (#{h["domain_id"]})" if h["domain_id"]
-      #puts "   :: environment: #{h["environment_name"]} (#{h["environment_id"]})" if h["environment_id"]
-      #puts "   :: compute_profile: #{h["compute_profile_name"]} (#{h["compute_profile_id"]})" if h["compute_profile_id"]
       puts "   :: ptable: #{h.ptable.try(:name)}"
       puts "   :: medium: #{h.medium.try(:name)}"
-      #puts "   :: architecture: #{h["architecture_name"]} (#{h["architecture_id"]})" if h["architecture_id"]
-      #puts "   :: realm: #{h["realm_name"]} (#{h["realm_id"]})" if h["realm_id"]
+      #puts "   :: subnet: #{h.subnet.try(:name)}"
     end
 
     def print_host(host)
-      puts "##{host.foreman_id}: #{host.hostname} (uuid: #{host.uuid})" # #{host.environment_id}:#{host.environment_name}"
-      puts "   :: enabled: #{host.enabled} build: #{host.build} managed: #{host.managed}"
+      puts "##{host.provider_ref}: #{host.hostname} (uuid: #{host.uuid})"
+      puts "   :: enabled: #{host.enabled} build: #{host.build}"
       print_host_info(host)
       puts "hostgroup #{host.configuration_profile.try(:name) || "none"}"
     end
 
-    def print_hostgroup(hg)
+    def print_configuration_profile(hg)
       # note, these params will only be populated if overriding. need to reference "ancestory" (list of ids) to get values
-      puts "##{hg.foreman_id}: #{hg.title}, #{hg.name}" # (#{hg["environment_name"]})
+      puts "##{hg.provider_ref}: #{hg.title}, #{hg.name}" # (#{hg["environment_name"]})
       print_host_info(hg)
     end
 
@@ -72,16 +66,16 @@ module ProvidersForeman
       print_host(host)
       puts
 
-      default_hostgroup = host.configuration_profile
-      default_os = host.operating_system_flavor || default_hostgroup.try(:operating_system_flavor)
+      default_configuration_profile = host.configuration_profile
+      default_os = host.operating_system_flavor || default_configuration_profile.try(:operating_system_flavor)
 
-      hostgroup = ask_with_menu("Host Group",
+      configuration_profile = ask_with_menu("Host Group",
         ConfigurationProfile.all.each_with_object({}) do |hg, h|
           hg_title = "#{hg.title}"
 #          hg_title << "(#{hg.environment_name})" if hg.environment_name?
           hg_title << " [OS: #{hg.operating_system_flavor.name}]" if hg.operating_system_flavor?
           h[hg_title] = hg
-        end, default_hostgroup)
+        end, default_configuration_profile)
 
       # [might be set by host group]
       os  = ask_with_menu("OS",
@@ -91,14 +85,14 @@ module ProvidersForeman
                           default_os)
 
       puts
-      puts "HostGroup"
+      puts "ConfigurationProfile"
       puts
-      print_hostgroup(hostgroup)
+      print_configuration_profile(configuration_profile)
       # print OS?
       puts
 
       # TODO: client side filtering based upon OS
-      default_medium = host.medium || hostgroup.medium
+      default_medium = host.medium || configuration_profile.medium
       medium  = ask_with_menu("Media",
                               CustomizationScript.media.each_with_object({}) do |m, h|
                                 h[m.name] = m
@@ -106,7 +100,7 @@ module ProvidersForeman
                               default_medium)
 
       # TODO: client side filtering based upon OS
-      default_ptable = host.ptable || hostgroup.ptable
+      default_ptable = host.ptable || configuration_profile.ptable
       partition = ask_with_menu("Partition",
         CustomizationScript.ptables.each_with_object({}) do |pt, h|
           h[pt.name] = pt
@@ -124,21 +118,24 @@ module ProvidersForeman
       ip_address = ask_for_string("IP Address: ", host.ip)
 
       # new_host is the new values (remove the ones that are equal to the existing host record)
+      # TODO: modify the fields in host, and send them
       new_host = {
         "build"              => true,
-        "hostgroup_id"       => hostgroup.foreman_id,
+        "hostgroup_id"       => configuration_profile.provider_ref,
         "ip"                 => ip_address,
-        "medium_id"          => medium.foreman_id,
+        "medium_id"          => medium.provider_ref,
         "name"               => hostname,
-        "operatingsystem_id" => os.foreman_id,
-        "ptable_id"          => partition.foreman_id,
+        "operatingsystem_id" => os.provider_ref,
+        "ptable_id"          => partition.provider_ref,
         "root_pass"          => root_password,
-#        "subnet_id"          => subnet.foreman_id,
+#        "subnet_id"          => subnet.provider_ref,
       }.delete_if { |n, v| host[n] == v }
-      new_host["id"] = host.foreman_id
+      new_host["id"] = host.provider_ref
 
 
       c.raw_hosts.update(new_host)
+
+      Provider.first.update_host(host, {"build" => true, } )
 
       puts
       puts "Host Values"

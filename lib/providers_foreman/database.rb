@@ -37,37 +37,45 @@ require "active_hash"
   end
 
   class ComputerSystem < ActiveHash::Base
+    include ActiveHash::Associations
+    belongs_to :configured_system
   end
 
   class Hardware < ActiveHash::Base
+    include ActiveHash::Associations
     belongs_to :computer_system
   end
 
   class OperatingSystem < ActiveHash::Base
+    include ActiveHash::Associations
     belongs_to :computer_system
   end
 
   class ConfiguredSystem < ActiveHash::Base
     include ActiveHash::Associations
-    field :foreman_id
+    field :provider_ref
     field :hostname
     field :uuid
-    field :ip
-    #field :mac
+    field :ip # -> computer_system/hardware/nics
+    #field :mac # -> computer_system/hardware/nics
     field :configuration_profile_id
     field :operating_system_flavor_id
     field :enabled
     field :build
-    field :managed
+##    field :power_state # -> computer system
+##    field :connection_state # -> computer system
+    alias_method :name, :hostname
 
     belongs_to :configuration_profile
     belongs_to :operating_system_flavor
     belongs_to :ptable, :class_name => 'CustomizationScript'
     belongs_to :medium, :class_name => 'CustomizationScript'
     belongs_to :customization, :class_name => 'CustomizationScript'
-    has_a :computer_system
 
-    alias_method :name, :hostname
+    #has_a :computer_system
+    def computer_system
+      ComputerSystem.find_by_configured_system_id(id)
+    end
 
     def self.find_by_subname(name)
       all.detect { |ms| ms.hostname.include?(name) }
@@ -76,7 +84,7 @@ require "active_hash"
 
   class ConfigurationProfile < ActiveHash::Base
     include ActiveHash::Associations
-    field :foreman_id
+    field :provider_ref
     field :name
     field :title
     #field :subnet_id
@@ -99,20 +107,17 @@ require "active_hash"
   end
 
   class OperatingSystemFlavor < ActiveHash::Base
-    field :foreman_id
+    field :provider_ref
     field :family
     field :description
     field :fullname
   end
 
   class CustomizationScript < ActiveHash::Base
-    field :foreman_id
+    field :provider_ref
     field :type #"ptable, "medium", "provision_template"
     field :name
 
-    # def self.find_ptable_by_foreman_id(id)
-    # end
- 
     def self.media
       all.select {|cs| cs.type == "medium" }
     end

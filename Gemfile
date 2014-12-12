@@ -5,5 +5,4 @@ gem 'foreman_api'
 gem 'active_hash'
 
 group "diagram" do
-  gem 'dothtml'
 end
