@@ -1,4 +1,4 @@
-module ProvidersForeman
+module ManageiqForeman
   class Connection
     attr_accessor :connection_attrs
 
