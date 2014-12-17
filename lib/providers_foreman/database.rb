@@ -31,7 +31,7 @@ require "active_hash"
       }
     end
 
-    def raw_connection
+    def raw_connect
       ProvidersForeman::Connection.new(connection_attrs)
     end
   end
@@ -53,6 +53,7 @@ require "active_hash"
 
   class ConfiguredSystem < ActiveHash::Base
     include ActiveHash::Associations
+    field :provider_id
     field :provider_ref
     field :hostname
     field :uuid
@@ -84,17 +85,17 @@ require "active_hash"
 
   class ConfigurationProfile < ActiveHash::Base
     include ActiveHash::Associations
+    field :provider_id
     field :provider_ref
     field :name
-    field :title
     #field :subnet_id
     field :operating_system_flavor_id
-    #field :foreman_environment_id
+    #field :environment_id
     field :ptable_id
     field :medium_id
     field :customization_id
-    # field :foreman_architecture_id
-    # field :foreman_realm_id
+    # field :architecture_id
+    # field :realm_id
 
     belongs_to :operating_system_flavor
     belongs_to :ptable, :class_name => 'CustomizationScript'
@@ -107,27 +108,44 @@ require "active_hash"
   end
 
   class OperatingSystemFlavor < ActiveHash::Base
+    include ActiveHash::Associations
+    field :provider_id
     field :provider_ref
     field :family
     field :description
     field :fullname
+    belongs_to :provision_template, :class_name => 'CustomizationScript'
+    belongs_to :pxe_template, :class_name => 'CustomizationScript'
+    has_many :operating_system_customization_scripts
+    has_many :customization_scripts, :through => :operating_system_customization_scripts
+    has_many :ptables, :through => :operating_system_customization_scripts, :where => {:script_type => "ptables"}
+    has_many :media, :through => :operating_system_customization_scripts, :where => {:script_type => "medium"}
+  end
+
+  class OperatingSystemCustomizationScript < ActiveHash::Base
+    include ActiveHash::Associations
+    field :operating_system_flavor_id
+    field :customization_script_id
+
+    belongs_to :operating_system_flavor_id
+    belongs_to :customization_script_id
   end
 
   class CustomizationScript < ActiveHash::Base
+    include ActiveHash::Associations
+    field :provider_id
     field :provider_ref
-    field :type #"ptable, "medium", "provision_template"
+    field :script_type #"ptable, "medium", "provision_template"
     field :name
 
+    # named scope
     def self.media
-      all.select {|cs| cs.type == "medium" }
+      all.select {|cs| cs.script_type == "medium" }
     end
 
     def self.ptables
-      all.select {|cs| cs.type == "ptable" }
+      all.select {|cs| cs.script_type == "ptable" }
     end
   end
 
-  class ForemanSubnet < ActiveHash::Base
-
-  end
 #end

@@ -17,8 +17,8 @@ module ProvidersForeman
     #   - subnets
     def ems_inv_to_hashes(ems, refresher_options = {})
 
-      c = ems.raw_connection
-
+      c = ems.raw_connect
+      operating_systems = c.operating_systems #used twice
       {
         :ems => {
           :hosts => c.all(:hosts).map do |h|
@@ -94,7 +94,7 @@ module ProvidersForeman
               # "puppet_ca_proxy_id"   => hg["puppet_ca_proxy_id"],
             }
           end,
-          :operating_systems => c.operating_systems.map do |os|
+          :operating_systems => operating_systems.map do |os|
             {
               "id"          => os["id"],
               "family"      => os["family"],
@@ -103,6 +103,23 @@ module ProvidersForeman
               # fullname = "#{name} #{major}.#{minor}"
               # "release_name"
             }
+          end,
+          :operating_system_templates => operating_systems.each_with_object([]) do |os, osta|
+            oss = c.operating_system(os["id"])
+            oss.first["media"].each do |ma|
+              osta << {
+                "script_type"               => "media",
+                "operatingsystem_id"        => os["id"],
+                "configuration_template_id" => ma["id"]
+              }
+            end
+            oss.first["ptables"].each do |pta|
+              osta << {
+                "script_type"               => "ptable",
+                "operatingsystem_id"        => os["id"],
+                "configuration_template_id" => pta["id"]
+              }
+            end
           end,
           :media => c.media.map do |m|
             {
@@ -119,15 +136,6 @@ module ProvidersForeman
               "os_family" => pt["os_family"],
             }
           end,
-          :config_templates => c.config_templates.map do |ct|
-            {
-              "id"        => ct["id"],
-              "name"      => ct["name"],
-              # template_kind_name / template_kind_id
-              # snippet
-              # e.g.: provision iPXE, PXELinux, script, finsish PXEGrub
-            }
-          end,
         }
       }
     end
@@ -138,24 +146,24 @@ module ProvidersForeman
       # start with lower level tables, so others can be linked
       hashes[:ems][:operating_systems].each do |osh|
         os = OperatingSystemFlavor.find_by_provider_ref(osh["id"]) ||
-             OperatingSystemFlavor.new(:provider_ref => osh["id"])
+             OperatingSystemFlavor.new(:provider_id => ems.id, :provider_ref => osh["id"])
         os.family      = osh["family"]
         os.description = osh["description"]
         os.fullname    = osh["fullname"]
         os.save
       end
 
-      hashes[:ems][:config_templates].each do |cth|
-        pt = CustomizationScript.find_by_provider_ref_and_type(cth["id"], "config_template") ||
-             CustomizationScript.new(:provider_ref => cth["id"], :type => "config_template")
-        pt.name = cth["name"]
-        # note: have a type field...
-        pt.save
+      hashes[:ems][:operating_system_templates].each do |osth|
+        os = OperatingSystemFlavor.find_by_provider_ref(osth["operatingsystem_id"])
+        cs = CustomizationScript.find_by_provider_ref_and_script_type(osth["configuration_template_id"], osth["script_type"])
+        oscs = OperatingSystemCustomizationScript.find_by_operating_system_flavor_id_and_customization_script_id(os.id, cs.id) ||
+               OperatingSystemCustomizationScript.new(:operating_system_flavor_id => os.id, :customization_script_id => cs.id)
+        oscs.save
       end
 
       hashes[:ems][:ptables].each do |pth|
-        pt = CustomizationScript.find_by_provider_ref_and_type(pth["id"], "ptable") ||
-             CustomizationScript.new(:provider_ref => pth["id"], :type => "ptable")
+        pt = CustomizationScript.find_by_provider_ref_and_script_type(pth["id"], "ptable") ||
+             CustomizationScript.new(:provider_id => ems.id, :provider_ref => pth["id"], :script_type => "ptable")
         pt.name = pth["name"]
         #pt.os_family
         pt.save
@@ -163,8 +171,8 @@ module ProvidersForeman
       end
 
       hashes[:ems][:media].each do |mh|
-        pt = CustomizationScript.find_by_provider_ref_and_type(mh["id"], "medium") ||
-             CustomizationScript.new(:provider_ref => mh["id"], :type => "medium")
+        pt = CustomizationScript.find_by_provider_ref_and_script_type(mh["id"], "medium") ||
+             CustomizationScript.new(:provider_id => ems.id, :provider_ref => mh["id"], :script_type => "medium")
         pt.name = mh["name"]
         #pt.os_family
         pt.save
@@ -173,14 +181,13 @@ module ProvidersForeman
 
       hashes[:ems][:hostgroups].each do |cph|
         cp = ConfigurationProfile.find_by_provider_ref(cph["id"]) ||
-             ConfigurationProfile.new(:provider_ref => cph["id"])
-        cp.name                        = cph["name"]
-        cp.title                       = cph["title"]
+             ConfigurationProfile.new(:provider_id => ems.id, :provider_ref => cph["id"])
+        cp.name                        = cph["title"] # hierarchical
         #cp.foreman_subnet_id           = cph["subnet_id"]
         cp.operating_system_flavor     = OperatingSystemFlavor.find_by_provider_ref(cph["operatingsystem_id"])
         #cp.foreman_domain_id           = cph["domain_id"]
-        cp.ptable                      = CustomizationScript.find_by_provider_ref_and_type(cph["ptable_id"], "ptable")
-        cp.medium                      = CustomizationScript.find_by_provider_ref_and_type(cph["medium_id"], "medium")
+        cp.ptable                      = CustomizationScript.find_by_provider_ref_and_script_type(cph["ptable_id"], "ptable")
+        cp.medium                      = CustomizationScript.find_by_provider_ref_and_script_type(cph["medium_id"], "medium")
         #cp.foreman_architecture_id     = cph["architecture_id"]
         #cp.foreman_realm_id            = cph["realm_id"]
         cp.save
@@ -188,15 +195,15 @@ module ProvidersForeman
 
       hashes[:ems][:hosts].each do |msh|
         ms = ConfiguredSystem.find_by_provider_ref(msh["id"]) ||
-             ConfiguredSystem.new(:provider_ref => msh["id"])
+             ConfiguredSystem.new(:provider_id => ems.id, :provider_ref => msh["id"])
         ms.hostname                    = msh["name"]
         ms.uuid                        = msh["uuid"]
         ms.ip                          = msh["ip"]
         #ms.mac                         = msh["mac"]
         ms.configuration_profile       = ConfigurationProfile.find_by_provider_ref(msh["hostgroup_id"])
         ms.operating_system_flavor     = OperatingSystemFlavor.find_by_provider_ref(msh["operatingsystem_id"])
-        ms.ptable                      = CustomizationScript.find_by_provider_ref_and_type(msh["ptable_id"], "ptable")
-        ms.medium                      = CustomizationScript.find_by_provider_ref_and_type(msh["medium_id"], "medium")
+        ms.ptable                      = CustomizationScript.find_by_provider_ref_and_script_type(msh["ptable_id"], "ptable")
+        ms.medium                      = CustomizationScript.find_by_provider_ref_and_script_type(msh["medium_id"], "medium")
         ms.build                       = msh["build"]
         ms.enabled                     = msh["enabled"]
 #        ms.managed                     = msh["managed"]

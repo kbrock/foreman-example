@@ -5,6 +5,7 @@ digraph ForemanMedia {
   edge  [ arrowsize="0.5" fontname="helvetica" ]
 
   {
+# tooltip="class:done"
     ems_provider            [ label="{EMS Provider\n(tab)}" ]
     vm_or_template          [ label="{vm_or_template|(managed entity)}" ]
     host                    [ label="{host|(managed entity)}" ]
@@ -12,35 +13,41 @@ digraph ForemanMedia {
     computer_system         [ label="{Computer System|host, vm, template}" ]
     operating_system        [ label="{operating system}" ]
     hardware                [ label="{hardware}" ]
+    authentication          [ label="{Authentication|username|password}" ]
 
     ems_provider            -> host
     ems_provider            -> vm_or_template
-    host:s                  -> operating_system:n  [ constraint="true" ]
-    vm_or_template:s        -> operating_system:n  [ constraint="true" ]
-    host:s                  -> hardware:n          [ constraint="true" ]
-    vm_or_template:s        -> hardware:n          [ constraint="true" ]
+    host:s                  -> operating_system:n  [ ]
+    vm_or_template:s        -> operating_system:n  [ ]
+    host:s                  -> hardware:n          [ ]
+    vm_or_template:s        -> hardware:n          [ ]
+
+    ems_provider            -> authentication
   }
 
   { rank="same" ; vm_or_template ; host ; configured_system }
   { rank="same" ; ems_provider ; foreman_provider  }
 
 # ------
-  computer_system:s       -> operating_system:n    [ constraint="true" ]
-  computer_system:s       -> hardware:n            [ constraint="true" ]
-  host                    -> computer_system     [ style="dotted" constraint="false" ]
-  vm_or_template          -> computer_system     [ style="dotted" constraint="false" ]
+  computer_system:s       -> operating_system:n    [ ]
+  computer_system:s       -> hardware:n            [ ]
+
+  host                    -> computer_system       [ style="dotted" constraint="false" ]
+  vm_or_template          -> computer_system       [ style="dotted" constraint="false" ]
 # -------
 
-  foreman_provider        [ label="{Provider\nForemanProvider}" tooltip="class:done" ]
-  configuration_service   [ label="{Configuration Service\n(tab)}" tooltip="class:done" ]
-  configured_system       [ label="{Configured System\n(managed entity)|provider_ref|hostname|(arch)|uuid|enabled|build|managed}" ]
+  foreman_provider        [ label="{Provider\nProviderForeman|hostname|verify_ssl}" ]
+  configuration_service   [ label="{Configuration Service\nConfigurationServiceForeman\n(tab)}" tooltip="class:done" ]
+  configured_system       [ label="{Configured System\n(managed entity)|provider_ref|hostname|(arch)|(uuid)|(enabled)|(build)|(managed)}" tooltip="class:done" ]
 
-  configuration_profile   [ label="{Configuration Profile\nForemanHostGroup|provider_ref|name|title}" tooltip="class:done"]
+  configuration_profile   [ label="{Configuration Profile\nForemanHostGroup|provider_ref|name}" tooltip="class:done" ]
 
   operating_system_flavor [ label="{Operating System Flavor|provider_ref|fullname|description|(family)|(arch[])|(ct(p))|(ct(pxe))}" tooltip="class:done" ]
   customization_scripts   [ label="{Customization Scripts|ptable\nmedium\nconfig template(p)|provider_ref|name|(family)}" tooltip="class:done" ]
 
   foreman_provider        -> configuration_service   [ headlabel="*" ]
+  foreman_provider        -> authentication
+
   configuration_service   -> configuration_profile:n [ constraint="false" headlabel="*" ]
   configuration_service   -> configured_system       [ headlabel="*" ]
 
@@ -49,13 +56,12 @@ digraph ForemanMedia {
   configured_system       -> customization_scripts   [ constraint="false" label="ptable" headlabel="1"]
   configured_system       -> customization_scripts   [ constraint="false" label="medium" headlabel="1"]
   #configured_system      -> subnet
-  configured_system       -> operating_system_flavor [ headlabel="0..1" tooltip="class:done" ]
+  configured_system       -> operating_system_flavor [ headlabel="0..1" ]
   #configured_system      -> environment
 
   configuration_profile   -> operating_system_flavor [ headlabel="0..1" ]
-  configuration_profile   -> customization_scripts   [ headlabel="*" taillabel="*" ]
-  configuration_profile   -> customization_scripts   [ constraint="false" label="ptable" headlabel="0..1"]
-  configuration_profile   -> customization_scripts   [ constraint="false" label="medium" headlabel="0..1"]
+  configuration_profile   -> customization_scripts   [ label="ptable" headlabel="0..1"]
+  configuration_profile   -> customization_scripts   [ label="medium" headlabel="0..1"]
   #configuration_profile  -> environment
   #configuration_profile  -> subnet
 

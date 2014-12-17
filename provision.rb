@@ -94,7 +94,7 @@ module ProvidersForeman
       # TODO: client side filtering based upon OS
       default_medium = host.medium || configuration_profile.medium
       medium  = ask_with_menu("Media",
-                              CustomizationScript.media.each_with_object({}) do |m, h|
+                              os.media.each_with_object({}) do |m, h|
                                 h[m.name] = m
                               end,
                               default_medium)
@@ -102,7 +102,7 @@ module ProvidersForeman
       # TODO: client side filtering based upon OS
       default_ptable = host.ptable || configuration_profile.ptable
       partition = ask_with_menu("Partition",
-        CustomizationScript.ptables.each_with_object({}) do |pt, h|
+        os.ptables.each_with_object({}) do |pt, h|
           h[pt.name] = pt
         end, default_ptable)
 
@@ -120,6 +120,7 @@ module ProvidersForeman
       # new_host is the new values (remove the ones that are equal to the existing host record)
       # TODO: modify the fields in host, and send them
       new_host = {
+        "id"                 => host.provider_ref,
         "build"              => true,
         "hostgroup_id"       => configuration_profile.provider_ref,
         "ip"                 => ip_address,
@@ -129,13 +130,12 @@ module ProvidersForeman
         "ptable_id"          => partition.provider_ref,
         "root_pass"          => root_password,
 #        "subnet_id"          => subnet.provider_ref,
-      }.delete_if { |n, v| host[n] == v }
-      new_host["id"] = host.provider_ref
+      }.delete_if { |n, v| n != "id" && host[n] == v }
 
-
+      puts "saving:\n#{new_host.to_yaml}"
       c.raw_hosts.update(new_host)
 
-      Provider.first.update_host(host, {"build" => true, } )
+      Provider.first.update_host(host, {"build" => true } )
 
       puts
       puts "Host Values"

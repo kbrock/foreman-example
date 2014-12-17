@@ -60,9 +60,12 @@ text {
 } 
  
 .node path {
-  stroke-width: 2px;
+  stroke-width: 1.5px;
   stroke: #000000;
   fill: #ffffff;
+}
+.node polyline {
+  stroke-width: 1px;
 }
 .node text {
   font-size: 12px;
