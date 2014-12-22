@@ -1,3 +1,7 @@
+# ManageiqForeman
+
+This allows manageiq to use foreman as a provider
+
 Quick collaboration work to nail down our use cases with the foreman
 
 # Pre-workflows

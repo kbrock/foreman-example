@@ -21,7 +21,7 @@ module ManageiqForeman
         break if small.empty?
         all += small.to_a
       end
-      puts "ut ooh" if expected_size != all.size
+      #puts "ut ooh" if expected_size != all.size
       return PagedResponse.new(all)
     end
 
