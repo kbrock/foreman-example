@@ -27,9 +27,22 @@ body {
 }
 
 /* extra (add html to make more important than default */
-html .done path {
+html .neutral path {
   fill: #dddddd;
 }
+
+html .provis path {
+  fill: #ffdddd;
+}
+
+html .config path {
+  fill: #ddffdd;
+}
+
+html .ems path {
+  fill: #ddddff;
+}
+
 /* diagram */
 
 text {
