@@ -27,40 +27,39 @@ module ManageiqForeman
 
     # filter: "page" => #, "per_page" => #
     def hosts(filter = {})
-      paged_response(ForemanApi::Resources::Host, "index", filter)
+      paged_response(raw_hosts.index(filter).first)
     end
 
     def denormalized_hostgroups(filter = {})
-      hg = denormalize_hostgroups(all(:hostgroups, filter))
-      PagedResponse.new(hg)
+      paged_response(denormalize_hostgroups(all(:hostgroups, filter)))
     end
 
     def hostgroups(filter = {})
-      paged_response(ForemanApi::Resources::Hostgroup, "index", filter)
+      paged_response(raw_hostgroups.index(filter).first)
     end
 
     def operating_system(id)
-      paged_response(ForemanApi::Resources::OperatingSystem, "show", "id" => id)
+      paged_response(raw_operating_systems.show("id" => id).first)
     end
 
     def operating_systems(filter = {})
-      paged_response(ForemanApi::Resources::OperatingSystem, "index", filter)
+      paged_response(raw_operating_systems.index(filter).first)
     end
 
     def media(filter = {})
-      paged_response(ForemanApi::Resources::Medium, "index", filter)
+      paged_response(raw_media.index(filter).first)
     end
 
-    def ptable(filter = {})
-      paged_response(ForemanApi::Resources::Ptable, "index", filter)
+    def ptables(filter = {})
+      paged_response(raw_ptables.index(filter).first)
     end
 
     def config_templates(filter = {})
-      paged_response(ForemanApi::Resources::ConfigTemplate, "index", filter)
+      paged_response(raw_config_templates.index(filter).first)
     end
 
     def subnets(filter = {})
-      paged_response(ForemanApi::Resources::Subnet, "index", filter)
+      paged_response(raw_subnets.index(filter).first)
     end
 
     # take all the data from ancestors, and put that into the groups
@@ -75,28 +74,40 @@ module ManageiqForeman
 
     # filter:
     #   accepts "page" => 2, "per_page" => 50, "search" => "field=value", "value"
-    def paged_response(resource, method, filter = {})
-      PagedResponse.new(raw(resource).send(method, filter).first)
+    def paged_response(resource)
+      PagedResponse.new(resource)
     end
 
-    def update_record(resource, values)
-      PagedResponse.new(raw(resource).send("update", values).first)
+    def raw_config_templates
+      raw(ForemanApi::Resources::ConfigTemplate)
     end
 
     def raw_home
       raw(ForemanApi::Resources::Home)
     end
 
-    def raw_hosts
-      raw(ForemanApi::Resources::Host)
-    end
-
     def raw_hostgroups
       raw(ForemanApi::Resources::Hostgroup)
     end
 
+    def raw_hosts
+      raw(ForemanApi::Resources::Host)
+    end
+
+    def raw_media
+      raw(ForemanApi::Resources::Medium)
+    end
+
     def raw_operating_systems
       raw(ForemanApi::Resources::OperatingSystem)
+    end
+
+    def raw_ptables
+      raw(ForemanApi::Resources::Ptable)
+    end
+
+    def raw_subnets
+      raw(ForemanApi::Resources::Subnet)
     end
 
     def raw(resource)
