@@ -15,11 +15,11 @@ FOREMAN = {
 }
 
 require 'vcr'
-require 'rspec/autorun'
 
 RSpec.configure do |c|
   # c.extend VCR::RSpec::Macros
 end
+
 # vcr helper
 RECORD = {:record => :new_episodes }
 # :vcr => use_cassette("x", RECORD)

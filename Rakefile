@@ -5,8 +5,6 @@ RSpec::Core::RakeTask.new(:spec)
 
 task :default => :spec
 
-
-
 begin
   require "dothtml/dot_task"
   Dothtml::DotTask.new do |t|
