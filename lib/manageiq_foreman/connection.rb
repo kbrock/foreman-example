@@ -46,6 +46,12 @@ module ManageiqForeman
       paged_response(raw_operating_systems.index(filter).first)
     end
 
+    def operating_system_details(filter = {})
+      operating_systems(filter).map do |os|
+        operating_system(os["id"]).first
+      end
+    end
+
     def media(filter = {})
       paged_response(raw_media.index(filter).first)
     end
