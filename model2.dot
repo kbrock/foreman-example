@@ -26,6 +26,7 @@ digraph ForemanMedia {
 
   { rank="same" ; vm_or_template ; host ; configured_system }
   { rank="same" ; ems_provider ; foreman_provider  }
+  { rank="same" ; configuration_manager ; provisioning_manager }
 
 # ------
   computer_system:s        -> operating_system:n       [ headlabel="1" ]
@@ -35,38 +36,33 @@ digraph ForemanMedia {
   vm_or_template           -> computer_system          [ style="dotted" constraint="false" ]
 # -------
 
-  foreman_provider         [ label="{Provider\nProviderForeman|hostname|verify_ssl}" id="\N class=config" ]
+  foreman_provider         [ label="{Provider\nProviderForeman|url|verify_ssl}" id="\N class=config" ]
   configuration_manager    [ label="{Configuration Manager\nConfigurationManagerForeman}" id="\N class=config" ]
   provisioning_manager     [ label="{Provisioning Manager\nProvisioningManagerForeman}" id="\N class=provis" ]
-  configured_system        [ label="{Configured System\n(managed entity)|provider_ref|hostname|(arch)|(uuid)|(enabled)|(build)|(managed)}" id="\N class=config" ]
+  configured_system        [ label="{Configured System\n(managed entity)|hostname|(enabled)|(build)|(managed)}" id="\N class=config" ]
 
-  configuration_profile    [ label="{Configuration Profile|provider_ref|name}" id="\N class='config'" ]
+  configuration_profile    [ label="{Configuration Profile|name}" id="\N class='config'" ]
 
-  operating_system_flavor  [ label="{Operating System Flavor|provider_ref|fullname|description|(family)|(arch[])|(ct(p))|(ct(pxe))}" id="\N class=provis" ]
-  customization_script     [ label="{Customization Script\nMedium\nPtable|provider_ref|name|(family)}" id="\N class=provis" ]
-  customization_script_ref [ label="{Customization Script Ref|}" id="\N class=provis" ]
+  operating_system_flavor  [ label="{Operating System Flavor|name|description|(os family)}" id="\N class=provis" ]
+  customization_script     [ label="{Customization Script\nMedium\nPtable|name|(os family)}" id="\N class=provis" ]
 
-  foreman_provider         -> configuration_manager    [ headlabel="*" ]
-  foreman_provider         -> provisioning_manager     [ ]
-  foreman_provider         -> authentication           [ ]
+  foreman_provider         -> configuration_manager    [ headlabel="1" ]
+  foreman_provider         -> provisioning_manager     [ headlabel="1" ]
+  foreman_provider         -> authentication           [ headlabel="*" ]
 
-  configuration_manager    -> configuration_profile    [ constraint="false" headlabel="*" ]
+  configuration_manager    -> configuration_profile    [ headlabel="*" ]
   configuration_manager    -> configured_system        [ headlabel="*" ]
-  provisioning_manager     -> operating_system_flavor  [ constraint="true" headlabel="*" ]
+
+  provisioning_manager     -> operating_system_flavor  [ headlabel="*" ]
+  provisioning_manager     -> customization_script     [ headlabel="*" ]
 
   configured_system        -> computer_system          [ constraint="false" style="dotted" ]
   configured_system        -> configuration_profile    [ constraint="false" headlabel="1" ]
-  configured_system        -> customization_script_ref [ constraint="false" headlabel="2" style="dotted" ]
-  #configured_system       -> subnet
+  configured_system        -> customization_script     [ constraint="true" headlabel="2" style="dotted" ]
   configured_system        -> operating_system_flavor  [ headlabel="1" style="dotted" ]
-  #configured_system       -> environment
 
   configuration_profile    -> operating_system_flavor  [ headlabel="?" style="dotted" ]
-  configuration_profile    -> customization_script_ref [ headlabel="2?" style="dotted" ]
-  #configuration_profile   -> environment
-  #configuration_profile   -> subnet
+  configuration_profile    -> customization_script     [ headlabel="2?" style="dotted" ]
 
-  operating_system_flavor  -> customization_script_ref [ constraint="false" headlabel="2" ]
-  customization_script_ref -> customization_script     [ headlabel="1" ]
-  provisioning_manager     -> customization_script     [ constraint="false" headlabel="*" ]
+  operating_system_flavor  -> customization_script     [ constraint="false" headlabel="2" ]
 }
