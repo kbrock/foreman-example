@@ -39,7 +39,7 @@ digraph ForemanMedia {
   foreman_provider         [ label="{Provider\nProviderForeman|url|verify_ssl}" id="\N class=config" ]
   configuration_manager    [ label="{Configuration Manager\nConfigurationManagerForeman}" id="\N class=config" ]
   provisioning_manager     [ label="{Provisioning Manager\nProvisioningManagerForeman}" id="\N class=provis" ]
-  configured_system        [ label="{Configured System\n(managed entity)|hostname|(enabled)|(build)|(managed)}" id="\N class=config" ]
+  configured_system        [ label="{Configured System\nConfiguredSystemForeman\n(managed entity)|hostname|(enabled)|(build)|(managed)}" id="\N class=config" ]
 
   configuration_profile    [ label="{Configuration Profile|name}" id="\N class='config'" ]
 
@@ -56,13 +56,13 @@ digraph ForemanMedia {
   provisioning_manager     -> operating_system_flavor  [ headlabel="*" ]
   provisioning_manager     -> customization_script     [ headlabel="*" ]
 
-  configured_system        -> computer_system          [ constraint="false" style="dotted" ]
+  configured_system:w      -> computer_system          [ constraint="false" style="dotted" ]
   configured_system        -> configuration_profile    [ constraint="false" headlabel="1" ]
-  configured_system        -> customization_script     [ constraint="true" headlabel="2" style="dotted" ]
   configured_system        -> operating_system_flavor  [ headlabel="1" style="dotted" ]
 
   configuration_profile    -> operating_system_flavor  [ headlabel="?" style="dotted" ]
-  configuration_profile    -> customization_script     [ headlabel="2?" style="dotted" ]
+  configuration_profile    -> customization_script     [ headlabel="?" style="dotted" ]
+  configuration_profile    -> customization_script     [ headlabel="?" style="dotted" ]
 
-  operating_system_flavor  -> customization_script     [ constraint="false" headlabel="2" ]
+  operating_system_flavor  -> customization_script     [ constraint="false" headlabel="*" ]
 }
