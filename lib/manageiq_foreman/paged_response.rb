@@ -3,8 +3,6 @@ module ManageiqForeman
   class PagedResponse
     include Enumerable
 
-    attr_accessor :resource
-
     attr_accessor :page
     attr_accessor :total
     attr_accessor :size #subtotal
@@ -25,6 +23,12 @@ module ManageiqForeman
 
     def each(&block)
       results.each(&block)
+    end
+
+    # modify the structure inline
+    def map!(&block)
+      self.results = results.map(&block)
+      self
     end
 
     def [](name)

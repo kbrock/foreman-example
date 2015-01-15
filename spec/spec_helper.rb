@@ -22,9 +22,11 @@ end
 
 # vcr helper
 RECORD = {:record => :new_episodes }
-# :vcr => use_cassette("x", RECORD)
-def use_cassette(name, options={})
-  options.merge(:cassette_name => name)
+# e.g.: with_vcr("_3hosts", RECORD)
+def with_vcr(extension = "", options = {})
+  VCR.use_cassette("#{described_class.name}#{extension}", options) do
+    yield
+  end
 end
 
 VCR.configure do |c|

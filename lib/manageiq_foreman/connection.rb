@@ -31,7 +31,7 @@ module ManageiqForeman
     end
 
     def denormalized_hostgroups(filter = {})
-      paged_response(denormalize_hostgroups(all(:hostgroups, filter)))
+      denormalize_ancestors!(all(:hostgroups, filter))
     end
 
     def hostgroups(filter = {})
@@ -47,7 +47,7 @@ module ManageiqForeman
     end
 
     def operating_system_details(filter = {})
-      operating_systems(filter).map do |os|
+      operating_systems(filter).map! do |os|
         operating_system(os["id"]).first
       end
     end
@@ -70,11 +70,25 @@ module ManageiqForeman
 
     # take all the data from ancestors, and put that into the groups
     # assumes all groups are in groups array
-    def denormalize_hostgroups(groups)
-      groups.collect do |g|
-        (g["ancestry"] || "").split("/").each_with_object({}) do |gid, h|
-          h.merge!(groups.detect {|gd| gd["id"].to_s == gid }.select { |_n, v| !v.nil? })
-        end.merge!(g.select { |_n, v| !v.nil? })
+    def denormalize_ancestors(records)
+      paged_response(
+        records.collect do |record|
+          (record["ancestry"] || "").split("/").each_with_object({}) do |ancestor_id, h|
+            ancestor = records.detect {|r| r["id"].to_s == ancestor_id }
+            h.merge!(ancestor.select { |_n, v| !v.nil? })
+          end.merge!(record.select { |_n, v| !v.nil? })
+        end
+      )
+    end
+
+    def denormalize_ancestors!(records)
+      records.each do |record|
+        (record["ancestry"] || "").split("/").each do |ancestor_id|
+          ancestor_id = ancestor_id.to_i
+          if ancestor = records.detect {|r| r["id"] == ancestor_id }
+            ancestor.each_pair { |n, v| record[n] ||= v if !v.nil? }
+          end
+        end
       end
     end
 
