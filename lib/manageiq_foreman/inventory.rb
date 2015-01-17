@@ -14,22 +14,22 @@ module ManageiqForeman
     end
 
     def refresh(target = nil)
-      refresh_all
+      refresh_all(target)
     end
 
     # generate inventory for the foreman provider
-    def refresh_all
-      refresh_configuration.merge(refresh_provisioning)
+    def refresh_all(target = nil)
+      refresh_configuration(target).merge(refresh_provisioning)
     end
 
-    def refresh_configuration
+    def refresh_configuration(target = nil)
       {
         :hosts             => connection.all(:hosts),
         :hostgroups        => connection.denormalized_hostgroups,
       }
     end
 
-    def refresh_provisioning
+    def refresh_provisioning(target = nil)
       {
         :operating_systems => connection.all(:operating_system_details),
         :media             => connection.all(:media),
